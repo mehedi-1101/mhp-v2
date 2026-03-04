@@ -1,0 +1,12 @@
+{
+  "name": "@mhp/infra",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "sst": "^3.0.0",
+    "aws-cdk-lib": "^2.0.0"
+  }
+}
