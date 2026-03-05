@@ -4,5 +4,6 @@
     "rootDir": "src",
     "outDir": "dist"
   },
+  "files": ["../../.sst/platform/config.d.ts"],
   "include": ["src"]
 }
