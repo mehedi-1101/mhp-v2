@@ -41,6 +41,8 @@ export interface User {
   role: Role;
   teamId: string | null; // null for ADMIN and LOGISTICS roles
   status: UserStatus;
+  createdAt: string;    // ISO 8601 timestamp — when the user was first added
+  updatedAt: string;    // ISO 8601 timestamp
 }
 
 /**
@@ -118,6 +120,7 @@ export interface Settings {
   iftarPeriods: IftarPeriod[];       // empty until admin configures
   companyWfhPeriods: CompanyWfhPeriod[]; // empty until admin configures
   maxForwardPlanningDays: number;    // default: 14
+  monthlyWfhAllowance: number;       // soft limit for WFH days per month. Default: 5
 }
 
 /**

@@ -34,6 +34,7 @@ const defaultSettings: Settings = {
   iftarPeriods: [],          // admin configures when Ramadan begins
   companyWfhPeriods: [],     // admin configures when needed
   maxForwardPlanningDays: 14,
+  monthlyWfhAllowance: 5,   // soft limit — flagged in WFH overage report (iteration 2)
 };
 
 async function seedSettings(): Promise<void> {
