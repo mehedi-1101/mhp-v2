@@ -6,8 +6,12 @@ import { TIMEZONE } from "./constants.js";
  */
 export function isValidDate(date: string): boolean {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return false;
-  const d = new Date(date + "T00:00:00");
-  return !isNaN(d.getTime()) && d.toISOString().startsWith(date);
+  // Parse as UTC to avoid local timezone shifting the date
+  const d = new Date(date + "T00:00:00Z");
+  if (isNaN(d.getTime())) return false;
+  // Verify components match — catches invalid dates like 2026-02-30
+  const [y, m, day] = date.split("-").map(Number);
+  return d.getUTCFullYear() === y && d.getUTCMonth() + 1 === m && d.getUTCDate() === day;
 }
 
 /**
@@ -18,8 +22,8 @@ export function isWithinPlanningWindow(date: string, maxDays: number): boolean {
   const now = new Date();
   const todayStr = now.toLocaleDateString("en-CA", { timeZone: TIMEZONE });
 
-  const maxDate = new Date(todayStr + "T00:00:00");
-  maxDate.setDate(maxDate.getDate() + maxDays);
+  const maxDate = new Date(todayStr + "T00:00:00Z");
+  maxDate.setUTCDate(maxDate.getUTCDate() + maxDays);
   const maxDateStr = maxDate.toISOString().slice(0, 10);
 
   return date >= todayStr && date <= maxDateStr;
