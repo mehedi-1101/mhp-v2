@@ -1,15 +1,16 @@
 /**
  * seed-settings.ts
  *
- * Writes the initial Settings record to DynamoDB with default values.
- * Safe to run multiple times — uses PutItem which overwrites the same key.
+ * Writes the initial Settings record to the MHP single table.
+ * Idempotent — uses a condition expression so it only writes if the record
+ * does not already exist. Re-running is safe.
  *
  * Usage:
  *   npx tsx scripts/seed-settings.ts
  *
  * Prerequisites:
  *   - AWS credentials configured (aws configure or AWS_PROFILE env var)
- *   - SETTINGS_TABLE env var set (copy .env.example to .env and fill in)
+ *   - MHP_TABLE env var set (copy .env.example to .env and fill in)
  *   - SST has been deployed at least once so the table exists (npx sst deploy)
  */
 
@@ -17,10 +18,10 @@ import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient, PutCommand } from "@aws-sdk/lib-dynamodb";
 import type { Settings } from "../packages/core/src/types.js";
 
-const tableName = process.env.SETTINGS_TABLE;
+const tableName = process.env.MHP_TABLE;
 if (!tableName) {
-  console.error("Error: SETTINGS_TABLE environment variable is not set.");
-  console.error("Copy .env.example to .env and set the SETTINGS_TABLE value.");
+  console.error("Error: MHP_TABLE environment variable is not set.");
+  console.error("Copy .env.example to .env and set the MHP_TABLE value.");
   process.exit(1);
 }
 
@@ -29,6 +30,9 @@ const client = new DynamoDBClient({ region });
 const docClient = DynamoDBDocumentClient.from(client);
 
 const defaultSettings: Settings = {
+  PK: "SETTINGS#global",
+  SK: "SETTINGS#global",
+  entityType: "SETTINGS",
   settingId: "global",
   offDays: [0, 6],          // 0 = Sunday, 6 = Saturday
   iftarPeriods: [],          // admin configures when Ramadan begins
@@ -38,17 +42,30 @@ const defaultSettings: Settings = {
 };
 
 async function seedSettings(): Promise<void> {
-  console.log(`Seeding Settings table: ${tableName}`);
+  console.log(`Seeding MHP table: ${tableName}`);
   console.log("Record:", JSON.stringify(defaultSettings, null, 2));
 
-  await docClient.send(
-    new PutCommand({
-      TableName: tableName,
-      Item: defaultSettings,
-    })
-  );
-
-  console.log("Done. Settings record written (settingId = 'global').");
+  try {
+    await docClient.send(
+      new PutCommand({
+        TableName: tableName,
+        Item: defaultSettings,
+        ConditionExpression: "attribute_not_exists(PK)",
+      })
+    );
+    console.log("Done. Settings record created.");
+  } catch (err: unknown) {
+    if (
+      typeof err === "object" &&
+      err !== null &&
+      "name" in err &&
+      (err as { name: string }).name === "ConditionalCheckFailedException"
+    ) {
+      console.log("Settings record already exists — skipping.");
+    } else {
+      throw err;
+    }
+  }
 }
 
 seedSettings().catch((err) => {
