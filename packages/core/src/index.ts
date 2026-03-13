@@ -7,3 +7,4 @@ export * from "./availability.js";
 export * from "./participation.js";
 export * from "./cutoff.js";
 export * from "./validation.js";
+export * from "./auth.js";
