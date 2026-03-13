@@ -9,27 +9,28 @@ export default $config({
     };
   },
   async run() {
-    const { createTables } = await import("./packages/infra/src/tables.js");
+    const { createTable } = await import("./packages/infra/src/tables.js");
 
-    const {
-      usersTable,
-      participationTable,
-      workLocationsTable,
-      specialDaysTable,
-      settingsTable,
-      summaryJobsTable,
-    } = createTables();
+    const { mhpTable } = createTable();
 
-    // Table names returned here so they appear in sst outputs.
-    // Lambda functions (added in Issue 4) will receive these as environment
-    // variables: environment: { USERS_TABLE: usersTable.name, ... }
+    const botFunction = new sst.aws.Function("BotFunction", {
+      handler: "packages/bot/src/index.handler",
+      environment: {
+        DISCORD_PUBLIC_KEY: process.env.DISCORD_PUBLIC_KEY!,
+        MHP_TABLE: mhpTable.name,
+      },
+      link: [mhpTable],
+    });
+
+    const api = new sst.aws.ApiGatewayV2("BotApi", {
+      routes: {
+        "POST /interactions": botFunction,
+      },
+    });
+
     return {
-      usersTable: usersTable.name,
-      participationTable: participationTable.name,
-      workLocationsTable: workLocationsTable.name,
-      specialDaysTable: specialDaysTable.name,
-      settingsTable: settingsTable.name,
-      summaryJobsTable: summaryJobsTable.name,
+      MHP_TABLE: mhpTable.name,
+      apiUrl: api.url,
     };
   },
 });

@@ -1,133 +1,65 @@
 /**
- * Defines all 6 DynamoDB tables for MHP.
+ * Defines the single MHP DynamoDB table.
  *
- * Called from sst.config.ts inside run(). Returns all table constructs so
- * sst.config.ts can pass their names as environment variables to Lambda functions.
+ * Called from sst.config.ts inside run(). Returns the table construct so
+ * sst.config.ts can pass its name as the MHP_TABLE environment variable
+ * to Lambda functions.
+ *
+ * Single-table design: all entity types (User, Team, Participation,
+ * WorkLocation, SpecialDay, Settings, SummaryJob) share one table.
+ * Entity types are distinguished by key prefixes and the entityType attribute.
  *
  * Billing: PAY_PER_REQUEST is SST's default — no override needed.
  *
- * GSI budget: 2 total across all tables.
- * - discordId-index on Users        (every bot command resolves discordId → user)
- * - userId-date-index on Participation  (employee status view)
+ * GSI budget: 2 total.
+ * - discordId-index   (User items)                        — resolves Discord caller on every command
+ * - userId-date-index (Participation + WorkLocation items) — shared projection, covers
+ *                                                            meal history AND WFH monthly history
  */
-export function createTables() {
+export function createTable() {
   // ---------------------------------------------------------------------------
-  // Users
-  // PK: userId (format: u#<discordId>)
-  // GSI: discordId-index — resolves Discord user → internal user on every command.
-  // Without this GSI every bot command would require a full table scan.
+  // MHP — single table for all entity types
+  //
+  // Key namespace:
+  //   User          PK: USER#<userId>       SK: USER#<userId>
+  //   Team          PK: TEAM#<teamId>       SK: TEAM#<teamId>
+  //   Participation PK: PART#<date>         SK: <userId>#<mealType>
+  //   WorkLocation  PK: LOC#<date>          SK: <userId>
+  //   SpecialDay    PK: SDAY#<yearMonth>    SK: <date>
+  //   Settings      PK: SETTINGS#global     SK: SETTINGS#global
+  //   SummaryJob    PK: JOB#<date>          SK: <jobId>
+  //
+  // Only attributes used in keys or GSIs are declared here.
+  // All other attributes are schema-free (standard DynamoDB behaviour).
   // ---------------------------------------------------------------------------
-  const usersTable = new sst.aws.Dynamo("Users", {
+  const mhpTable = new sst.aws.Dynamo("MHP", {
     fields: {
-      userId: "string",
-      discordId: "string",
+      PK:        "string",  // partition key
+      SK:        "string",  // sort key
+      discordId: "string",  // GSI 1 PK — User items only
+      userId:    "string",  // GSI 2 PK — Participation + WorkLocation items
+      date:      "string",  // GSI 2 SK — Participation + WorkLocation items
     },
     primaryIndex: {
-      hashKey: "userId",
+      hashKey:  "PK",
+      rangeKey: "SK",
     },
     globalIndexes: {
+      // GSI 1: resolves discordId → User on every bot command.
+      // Without this index every command would require a full table scan.
       "discordId-index": {
         hashKey: "discordId",
       },
-    },
-  });
-
-  // ---------------------------------------------------------------------------
-  // Participation
-  // PK: date (YYYY-MM-DD)   SK: userId#mealType (e.g. u#123456789#LUNCH)
-  // Composite SK enables prefix queries: begins_with("u#123") = one user's meals.
-  // GSI: userId-date-index — employee status view (user first, then date).
-  // ---------------------------------------------------------------------------
-  const participationTable = new sst.aws.Dynamo("Participation", {
-    fields: {
-      date: "string",
-      "userId#mealType": "string",
-      userId: "string",
-    },
-    primaryIndex: {
-      hashKey: "date",
-      rangeKey: "userId#mealType",
-    },
-    globalIndexes: {
+      // GSI 2: shared by Participation and WorkLocation items.
+      // Both carry userId and date as plain attributes and project into this index.
+      // entityType ("PART" or "LOC") distinguishes them in application code.
+      // Covers: user meal history (PART) + WFH monthly history (LOC).
       "userId-date-index": {
-        hashKey: "userId",
+        hashKey:  "userId",
         rangeKey: "date",
       },
     },
   });
 
-  // ---------------------------------------------------------------------------
-  // WorkLocations
-  // PK: date (YYYY-MM-DD)   SK: userId
-  // Absence of a record means OFFICE (default).
-  // No GSI in this iteration — monthly history deferred to WFH overage report feature.
-  // ---------------------------------------------------------------------------
-  const workLocationsTable = new sst.aws.Dynamo("WorkLocations", {
-    fields: {
-      date: "string",
-      userId: "string",
-    },
-    primaryIndex: {
-      hashKey: "date",
-      rangeKey: "userId",
-    },
-  });
-
-  // ---------------------------------------------------------------------------
-  // SpecialDays
-  // PK: yearMonth (YYYY-MM)   SK: date (YYYY-MM-DD)
-  // yearMonth as PK enables both single-date lookup AND list-by-month without a GSI.
-  // If date were the PK, listing a month's special days would require a full scan.
-  // ---------------------------------------------------------------------------
-  const specialDaysTable = new sst.aws.Dynamo("SpecialDays", {
-    fields: {
-      yearMonth: "string",
-      date: "string",
-    },
-    primaryIndex: {
-      hashKey: "yearMonth",
-      rangeKey: "date",
-    },
-  });
-
-  // ---------------------------------------------------------------------------
-  // Settings
-  // PK: settingId — always "global" (single record table).
-  // All reads are GetItem PK="global". All writes replace the full record.
-  // No SK, no GSI needed.
-  // ---------------------------------------------------------------------------
-  const settingsTable = new sst.aws.Dynamo("Settings", {
-    fields: {
-      settingId: "string",
-    },
-    primaryIndex: {
-      hashKey: "settingId",
-    },
-  });
-
-  // ---------------------------------------------------------------------------
-  // SummaryJobs
-  // PK: date (YYYY-MM-DD)   SK: jobId (UUID)
-  // Jobs are looked up by the date they cover, not by job ID.
-  // SK ensures uniqueness when multiple jobs exist for the same date (retries).
-  // ---------------------------------------------------------------------------
-  const summaryJobsTable = new sst.aws.Dynamo("SummaryJobs", {
-    fields: {
-      date: "string",
-      jobId: "string",
-    },
-    primaryIndex: {
-      hashKey: "date",
-      rangeKey: "jobId",
-    },
-  });
-
-  return {
-    usersTable,
-    participationTable,
-    workLocationsTable,
-    specialDaysTable,
-    settingsTable,
-    summaryJobsTable,
-  };
+  return { mhpTable };
 }
