@@ -13,19 +13,14 @@ export default $config({
 
     const { mhpTable } = createTable();
 
-    const botFunction = new sst.aws.Function("BotFunction", {
+    const api = new sst.aws.ApiGatewayV2("BotApi");
+    api.route("POST /interactions", {
       handler: "packages/bot/src/index.handler",
       environment: {
         DISCORD_PUBLIC_KEY: process.env.DISCORD_PUBLIC_KEY!,
         MHP_TABLE: mhpTable.name,
       },
       link: [mhpTable],
-    });
-
-    const api = new sst.aws.ApiGatewayV2("BotApi", {
-      routes: {
-        "POST /interactions": botFunction,
-      },
     });
 
     return {
