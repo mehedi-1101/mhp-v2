@@ -1,14 +1,9 @@
 /**
- * /headcount command stub.
- * Implemented in Issue 8.
+ * /headcount command stub. Implemented in Issue 8.
  */
 
-import type { User } from "@mhp/core";
-import { ephemeralReply } from "../index.js";
+import type { CommandContext, CommandResult } from "@mhp/core";
 
-export async function handleHeadcount(
-  _interaction: Record<string, unknown>,
-  _user: User
-): Promise<Record<string, unknown>> {
-  return ephemeralReply("Headcount commands are not yet implemented.");
+export async function handleHeadcount(_ctx: CommandContext): Promise<CommandResult> {
+  return { content: "Headcount commands are not yet implemented.", ephemeral: true };
 }

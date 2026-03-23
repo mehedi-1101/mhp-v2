@@ -1,14 +1,9 @@
 /**
- * /summary command stub.
- * Implemented in Issue 9.
+ * /summary command stub. Implemented in Issue 9.
  */
 
-import type { User } from "@mhp/core";
-import { ephemeralReply } from "../index.js";
+import type { CommandContext, CommandResult } from "@mhp/core";
 
-export async function handleSummary(
-  _interaction: Record<string, unknown>,
-  _user: User
-): Promise<Record<string, unknown>> {
-  return ephemeralReply("Summary commands are not yet implemented.");
+export async function handleSummary(_ctx: CommandContext): Promise<CommandResult> {
+  return { content: "Summary commands are not yet implemented.", ephemeral: true };
 }

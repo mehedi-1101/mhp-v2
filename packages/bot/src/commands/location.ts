@@ -1,14 +1,9 @@
 /**
- * /location command stub.
- * Implemented in Issue 7.
+ * /location command stub. Implemented in Issue 7.
  */
 
-import type { User } from "@mhp/core";
-import { ephemeralReply } from "../index.js";
+import type { CommandContext, CommandResult } from "@mhp/core";
 
-export async function handleLocation(
-  _interaction: Record<string, unknown>,
-  _user: User
-): Promise<Record<string, unknown>> {
-  return ephemeralReply("Location commands are not yet implemented.");
+export async function handleLocation(_ctx: CommandContext): Promise<CommandResult> {
+  return { content: "Location commands are not yet implemented.", ephemeral: true };
 }

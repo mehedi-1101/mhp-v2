@@ -4,21 +4,16 @@
  * Maps incoming command names to handler functions and enforces role-based
  * access before dispatch. Every handler can assume the caller's role has
  * already been verified — no handler needs to re-check permissions.
- *
- * Role enforcement uses requireRole() from packages/core, which is pure and
- * has no side effects.
  */
 
 import { requireRole } from "@mhp/core";
-import type { User, Role } from "@mhp/core";
-import { ephemeralReply } from "./index.js";
+import type { CommandContext, CommandResult, Role } from "@mhp/core";
 import { handleMeal } from "./commands/meal.js";
 import { handleLocation } from "./commands/location.js";
 import { handleHeadcount } from "./commands/headcount.js";
 import { handleTeam } from "./commands/team.js";
 import { handleSummary } from "./commands/summary.js";
 
-// Role map: which roles are allowed to invoke each top-level command.
 const COMMAND_ROLES: Record<string, Role[]> = {
   meal:      ["EMPLOYEE", "TEAM_LEAD", "ADMIN", "LOGISTICS"],
   location:  ["EMPLOYEE", "TEAM_LEAD", "ADMIN", "LOGISTICS"],
@@ -27,10 +22,7 @@ const COMMAND_ROLES: Record<string, Role[]> = {
   team:      ["TEAM_LEAD", "ADMIN"],
 };
 
-type Handler = (
-  interaction: Record<string, unknown>,
-  user: User
-) => Promise<Record<string, unknown>>;
+type Handler = (ctx: CommandContext) => Promise<CommandResult>;
 
 const HANDLERS: Record<string, Handler> = {
   meal:      handleMeal,
@@ -40,26 +32,17 @@ const HANDLERS: Record<string, Handler> = {
   team:      handleTeam,
 };
 
-export async function route(
-  interaction: Record<string, unknown>,
-  user: User
-): Promise<Record<string, unknown>> {
-  const data = interaction.data as Record<string, unknown> | undefined;
-  const commandName = data?.name as string | undefined;
+export async function route(ctx: CommandContext): Promise<CommandResult> {
+  const allowedRoles = COMMAND_ROLES[ctx.commandName];
 
-  if (!commandName) {
-    return ephemeralReply("Unknown command.");
-  }
-
-  const allowedRoles = COMMAND_ROLES[commandName];
   if (!allowedRoles) {
-    return ephemeralReply("Unknown command.");
+    return { content: "Unknown command.", ephemeral: true };
   }
 
-  if (!requireRole(user, ...allowedRoles)) {
-    return ephemeralReply("You don't have permission to use this command.");
+  if (!requireRole(ctx.user, ...allowedRoles)) {
+    return { content: "You don't have permission to use this command.", ephemeral: true };
   }
 
-  const handler = HANDLERS[commandName];
-  return handler(interaction, user);
+  const handler = HANDLERS[ctx.commandName];
+  return handler(ctx);
 }
