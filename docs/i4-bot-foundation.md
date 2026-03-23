@@ -123,22 +123,7 @@ SST v3 uses `api.addAuthorizer({ name, lambda: { function, identitySources, ttl:
 
 Command handlers in `packages/bot/src/commands/` do not import any Discord or GChat types. Both Bot Lambdas parse their platform-specific event into a `CommandContext` before calling any handler, then format the `CommandResult` into their platform's response shape.
 
-```typescript
-// packages/core/src/types.ts
-
-interface CommandContext {
-  user: User;
-  platform: "discord" | "gchat";
-  commandName: string;
-  subcommand: string | null;
-  args: Record<string, string | number | boolean | undefined>;
-}
-
-interface CommandResult {
-  content: string;
-  ephemeral: boolean;
-}
-```
+`CommandContext` carries the resolved `User`, platform identifier, command name, subcommand, and parsed args. `CommandResult` carries the response content and whether it should be ephemeral. Both are defined in `packages/core/src/types.ts` and imported by both Bot Lambdas.
 
 Discord Bot: `parse interaction → CommandContext → handler → format Discord JSON`
 GChat Bot: `parse GChat event → CommandContext → same handler → format GChat text`
@@ -175,49 +160,9 @@ Logs go to CloudWatch via `console.log(JSON.stringify(...))`. No library needed 
 
 ---
 
-## Infrastructure Changes (`sst.config.ts`)
+## Infrastructure Changes
 
-```typescript
-const api = new sst.aws.ApiGatewayV2("BotApi");
-
-const discordAuthorizer = api.addAuthorizer({
-  name: "DiscordAuthorizer",
-  lambda: {
-    function: {
-      handler: "packages/bot/src/authorizer.handler",
-      environment: { DISCORD_PUBLIC_KEY: process.env.DISCORD_PUBLIC_KEY! },
-    },
-    identitySources: ["$request.header.X-Signature-Ed25519"],
-    ttl: "0 seconds",
-  },
-});
-
-const gchatAuthorizer = api.addAuthorizer({
-  name: "GChatAuthorizer",
-  lambda: {
-    function: "packages/gchat/src/authorizer.handler",
-    identitySources: ["$request.header.Authorization"],
-    ttl: "0 seconds",
-  },
-});
-
-// Bot Lambdas only need MHP_TABLE — auth is fully handled by authorizers above
-api.route("POST /discord-interactions", {
-  handler: "packages/bot/src/index.handler",
-  auth: { lambda: discordAuthorizer.id },
-  environment: { MHP_TABLE: mhpTable.name },
-  link: [mhpTable],
-});
-
-api.route("POST /gchat-interactions", {
-  handler: "packages/gchat/src/index.handler",
-  auth: { lambda: gchatAuthorizer.id },
-  environment: { MHP_TABLE: mhpTable.name },
-  link: [mhpTable],
-});
-```
-
-**Note:** `api.route()` with inline handler definition is the correct SST v3 pattern — pre-created `Function` components passed to the constructor's `routes` property are silently dropped.
+Two API Gateway routes are added — `POST /discord-interactions` and `POST /gchat-interactions`. Each route is attached to its own Lambda Authorizer before the Bot Lambda is wired. The Discord Authorizer Lambda receives `DISCORD_PUBLIC_KEY` as an environment variable; the Bot Lambdas receive `MHP_TABLE`. The GChat Authorizer needs no secret — it validates Google JWTs against Google's public key endpoint.
 
 ---
 
