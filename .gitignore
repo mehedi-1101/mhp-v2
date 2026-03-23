@@ -2,3 +2,4 @@ node_modules/
 dist/
 .env
 .sst/
+sst-env.d.ts
