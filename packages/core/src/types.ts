@@ -37,17 +37,18 @@ export type JobStatus = "PENDING" | "PROCESSING" | "READY" | "FAILED";
  * GSI 1 (discordId-index): PK = discordId
  */
 export interface User {
-  PK: string;           // USER#<userId>
-  SK: string;           // USER#<userId>
+  PK: string;                   // USER#<userId>
+  SK: string;                   // USER#<userId>
   entityType: "USER";
-  userId: string;       // u#<discordId> — internal identity namespace
-  discordId: string;    // Discord snowflake ID — GSI 1 key
-  name: string;         // Display name shown in summaries
+  userId: string;               // u#<discordId> — internal identity namespace
+  discordId: string;            // Discord snowflake ID — GSI 1 key
+  gchatUserId: string | null;   // Google Chat user resource name e.g. "users/abc123"
+  name: string;                 // Display name shown in summaries
   role: Role;
-  teamId: string | null; // null for ADMIN and LOGISTICS roles
+  teamId: string | null;        // null for ADMIN and LOGISTICS roles
   status: UserStatus;
-  createdAt: string;    // ISO 8601
-  updatedAt: string;    // ISO 8601
+  createdAt: string;            // ISO 8601
+  updatedAt: string;            // ISO 8601
 }
 
 /**
@@ -182,4 +183,25 @@ export interface SummaryJob {
 export interface SummaryResult {
   date: string;
   formattedMessage: string;
+}
+
+// =============================================================================
+// Command interfaces
+// Platform-agnostic input/output for all command handlers.
+// Both Discord Bot and GChat Bot parse their platform-specific events into
+// CommandContext before calling any handler. Handlers return CommandResult,
+// which each Bot Lambda formats into its own response shape.
+// =============================================================================
+
+export interface CommandContext {
+  user: User;
+  platform: "discord" | "gchat";
+  commandName: string;
+  subcommand: string | null;
+  args: Record<string, string | number | boolean | undefined>;
+}
+
+export interface CommandResult {
+  content: string;
+  ephemeral: boolean;
 }
