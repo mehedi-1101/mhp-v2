@@ -1,0 +1,29 @@
+[
+  {
+    "discordId": "111111111111111111",
+    "gchatUserId": "users/abc123",
+    "name": "Alice Rahman",
+    "role": "ADMIN",
+    "teamId": null
+  },
+  {
+    "discordId": "222222222222222222",
+    "gchatUserId": null,
+    "name": "Bob Hossain",
+    "role": "TEAM_LEAD",
+    "teamId": "mimir"
+  },
+  {
+    "discordId": "333333333333333333",
+    "gchatUserId": "users/def456",
+    "name": "Carol Islam",
+    "role": "EMPLOYEE",
+    "teamId": "mimir"
+  },
+  {
+    "discordId": "444444444444444444",
+    "name": "Dave Khan",
+    "role": "LOGISTICS",
+    "teamId": null
+  }
+]
