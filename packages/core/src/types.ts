@@ -34,14 +34,14 @@ export type JobStatus = "PENDING" | "PROCESSING" | "READY" | "FAILED";
 /**
  * User item
  * PK: USER#<userId>   SK: USER#<userId>
- * GSI 1 (discordId-index): PK = discordId
+ * Discord lookup: GetItem with PK = USER#u#<discordId> (no GSI needed — PK is constructable)
  */
 export interface User {
   PK: string;                   // USER#<userId>
   SK: string;                   // USER#<userId>
   entityType: "USER";
   userId: string;               // u#<discordId> — internal identity namespace
-  discordId: string;            // Discord snowflake ID — GSI 1 key
+  discordId: string;            // Discord snowflake ID — plain attribute (not a GSI key)
   gchatUserId: string | null;   // Google Chat user resource name e.g. "users/abc123"
   name: string;                 // Display name shown in summaries
   role: Role;
@@ -69,7 +69,7 @@ export interface Team {
 /**
  * Participation item
  * PK: PART#<date>   SK: <userId>#<mealType>
- * GSI 2 (userId-date-index): PK = userId, SK = date
+ * GSI (userId-date-index): PK = userId, SK = date
  *
  * Absence of a record means the meal's default status applies.
  * Only explicit opt-in/out changes are stored.
@@ -78,8 +78,8 @@ export interface ParticipationRecord {
   PK: string;               // PART#<date>
   SK: string;               // <userId>#<mealType>
   entityType: "PART";
-  date: string;             // YYYY-MM-DD — plain attribute for GSI 2 SK
-  userId: string;           // u#<discordId> — plain attribute for GSI 2 PK
+  date: string;             // YYYY-MM-DD — plain attribute for GSI SK
+  userId: string;           // u#<discordId> — plain attribute for GSI PK
   mealType: MealType;
   status: MealStatus;
   updatedBy: string;        // userId of the actor
@@ -89,7 +89,7 @@ export interface ParticipationRecord {
 /**
  * WorkLocation item
  * PK: LOC#<date>   SK: <userId>
- * GSI 2 (userId-date-index): PK = userId, SK = date
+ * GSI (userId-date-index): PK = userId, SK = date
  *
  * Absence of a record means OFFICE (default).
  * WFH users are excluded from ALL meal headcounts regardless of participation records.
@@ -98,8 +98,8 @@ export interface WorkLocation {
   PK: string;       // LOC#<date>
   SK: string;       // <userId>
   entityType: "LOC";
-  date: string;     // YYYY-MM-DD — plain attribute for GSI 2 SK
-  userId: string;   // u#<discordId> — plain attribute for GSI 2 PK
+  date: string;     // YYYY-MM-DD — plain attribute for GSI SK
+  userId: string;   // u#<discordId> — plain attribute for GSI PK
   location: Location;
   updatedBy: string;
   updatedAt: string;

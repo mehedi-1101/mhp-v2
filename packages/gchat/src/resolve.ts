@@ -1,9 +1,9 @@
 /**
  * Resolves a Google Chat user ID to an internal MHP User record.
  *
- * Runs a DynamoDB Scan with FilterExpression on gchatUserId. At ~100 users
- * this completes in milliseconds. No GSI is added for this lookup — the
- * write cost of a third GSI is not justified at this scale.
+ * Runs a DynamoDB Scan with FilterExpression on gchatUserId and entityType.
+ * No GSI for this lookup — write cost of a third GSI is not justified at ~100
+ * users, and GChat has no hard response deadline unlike Discord.
  *
  * Returns null if not found. The caller returns an appropriate error to the user.
  */
@@ -21,7 +21,6 @@ export async function resolveGChatUser(gchatUserId: string): Promise<User | null
         ":gchatUserId": gchatUserId,
         ":entityType": "USER",
       },
-      Limit: 1,
     })
   );
 

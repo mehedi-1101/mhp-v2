@@ -11,7 +11,6 @@
     "@mhp/core": "*",
     "@aws-sdk/client-dynamodb": "^3.0.0",
     "@aws-sdk/lib-dynamodb": "^3.0.0",
-    "discord-interactions": "^3.4.0",
     "tweetnacl": "^1.0.3"
   },
   "devDependencies": {

@@ -1,32 +1,27 @@
 /**
  * Resolves a Discord user ID to an internal MHP User record.
  *
- * Queries the discordId-index GSI on the MHP table. This lookup runs on
- * every bot command — the GSI makes it a single-item query (~1–5ms).
+ * Uses GetItem directly on the main table. Since userId = u#<discordId>,
+ * the PK is constructable from the discordId — no GSI needed.
  *
  * Returns null if the discordId is not found. The caller is responsible
  * for returning an appropriate ephemeral error to the user.
  */
 
-import { QueryCommand } from "@aws-sdk/lib-dynamodb";
+import { GetCommand } from "@aws-sdk/lib-dynamodb";
 import type { User } from "@mhp/core";
 import { docClient, getTableName } from "./db/client.js";
 
 export async function resolveUser(discordId: string): Promise<User | null> {
+  const pk = `USER#u#${discordId}`;
   const result = await docClient.send(
-    new QueryCommand({
+    new GetCommand({
       TableName: getTableName(),
-      IndexName: "discordId-index",
-      KeyConditionExpression: "discordId = :discordId",
-      ExpressionAttributeValues: {
-        ":discordId": discordId,
-      },
-      Limit: 1,
+      Key: { PK: pk, SK: pk },
     })
   );
 
-  const item = result.Items?.[0];
-  if (!item) return null;
+  if (!result.Item) return null;
 
-  return item as User;
+  return result.Item as User;
 }
