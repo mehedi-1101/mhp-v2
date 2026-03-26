@@ -5,9 +5,10 @@
  * JWT that Google Chat attaches to every interaction. Returns { isAuthorized: false }
  * on failure — API Gateway rejects with 403 and the Bot Lambda is never invoked.
  *
- * Google Chat signs requests with a service account JWT. The token is verified
- * against Google's public keys using google-auth-library. The audience must match
- * the Cloud project number configured in GOOGLE_CLOUD_PROJECT env var.
+ * Google Chat signs requests with a service account JWT (OIDC ID token). The token
+ * is verified against Google's public keys using google-auth-library. The audience
+ * must match the HTTP endpoint URL configured in GCHAT_ENDPOINT_URL env var.
+ * In Google Cloud Console, set "Authentication Audience" to "HTTP endpoint URL".
  */
 
 import type { APIGatewayRequestAuthorizerEventV2 } from "aws-lambda";
@@ -27,7 +28,7 @@ export async function handler(
 
     if (!token) return { isAuthorized: false };
 
-    const audience = process.env.GOOGLE_CLOUD_PROJECT ?? "";
+    const audience = process.env.GCHAT_ENDPOINT_URL ?? "";
     const ticket = await client.verifyIdToken({ idToken: token, audience });
     const payload = ticket.getPayload();
 

@@ -32,14 +32,15 @@ export default $config({
     });
 
     // GChat Authorizer — verifies Google-signed JWT before GChat Bot Lambda runs.
-    // GOOGLE_CLOUD_PROJECT is the audience used for JWT verification.
+    // GCHAT_ENDPOINT_URL is the audience used for JWT verification (Method 1 — HTTP endpoint URL).
+    // In Google Cloud Console, set "Authentication Audience" to "HTTP endpoint URL".
     const gchatAuthorizer = api.addAuthorizer({
       name: "GChatAuthorizer",
       lambda: {
         function: {
           handler: "packages/gchat/src/authorizer.handler",
           environment: {
-            GOOGLE_CLOUD_PROJECT: process.env.GOOGLE_CLOUD_PROJECT!,
+            GCHAT_ENDPOINT_URL: process.env.GCHAT_ENDPOINT_URL!,
           },
         },
         identitySources: ["$request.header.Authorization"],
