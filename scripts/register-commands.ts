@@ -31,11 +31,6 @@ if (!appId) {
 
 // ---------------------------------------------------------------------------
 // Command definitions
-//
-// These match the 5 stubs in packages/bot/src/commands/.
-// Subcommands and options will be expanded in Issues 5–9 as handlers are
-// implemented. For now, top-level commands with no options are sufficient
-// to verify the end-to-end pipeline works.
 // ---------------------------------------------------------------------------
 
 const commands = [
@@ -43,6 +38,57 @@ const commands = [
     name: "meal",
     description: "View or update your meal participation",
     type: 1, // CHAT_INPUT
+    options: [
+      {
+        name: "status",
+        description: "View your meal status for a date",
+        type: 1, // SUB_COMMAND
+        options: [
+          {
+            name: "date",
+            description: "Date to check: today, tomorrow, or YYYY-MM-DD (default: today)",
+            type: 3, // STRING
+            required: false,
+          },
+        ],
+      },
+      {
+        name: "set",
+        description: "Update your meal participation",
+        type: 1, // SUB_COMMAND
+        options: [
+          {
+            name: "meal",
+            description: "Which meal to update",
+            type: 3, // STRING
+            required: true,
+            choices: [
+              { name: "Lunch", value: "LUNCH" },
+              { name: "Snacks", value: "SNACKS" },
+              { name: "Iftar", value: "IFTAR" },
+              { name: "Event Dinner", value: "EVENT_DINNER" },
+              { name: "Optional Dinner", value: "OPTIONAL_DINNER" },
+            ],
+          },
+          {
+            name: "status",
+            description: "IN or OUT",
+            type: 3, // STRING
+            required: true,
+            choices: [
+              { name: "IN", value: "IN" },
+              { name: "OUT", value: "OUT" },
+            ],
+          },
+          {
+            name: "date",
+            description: "Date to update: today, tomorrow, or YYYY-MM-DD (default: today)",
+            type: 3, // STRING
+            required: false,
+          },
+        ],
+      },
+    ],
   },
   {
     name: "location",
