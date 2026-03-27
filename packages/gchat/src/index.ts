@@ -5,20 +5,17 @@
  *   1. Parse GChat event body
  *   2. Extract gchatUserId from event sender
  *   3. Resolve gchatUserId → User (Scan) → error text if not found
- *   4. Build CommandContext and dispatch
- *   5. Format CommandResult → GChat text response
- *
- * Issue 4: All command handlers return stubs. Real implementations added in Issues 6–8.
- * The router and handler structure mirrors packages/bot — same CommandContext, same stubs.
+ *   4. Parse subcommand and args from argumentText
+ *   5. Build CommandContext and dispatch via shared route()
+ *   6. Format CommandResult → GChat text response
  */
 
 import type { APIGatewayProxyEventV2, APIGatewayProxyResultV2 } from "aws-lambda";
-import { requireRole } from "@mhp/core";
-import type { CommandContext, CommandResult, Role } from "@mhp/core";
+import type { CommandContext } from "@mhp/core";
+import { route } from "@mhp/bot/router";
 import { resolveGChatUser } from "./resolve.js";
 import { log, makeEntry } from "./logger.js";
 
-// GChat text response format
 function textResponse(text: string): APIGatewayProxyResultV2 {
   return {
     statusCode: 200,
@@ -27,36 +24,28 @@ function textResponse(text: string): APIGatewayProxyResultV2 {
   };
 }
 
-// Role map — mirrors packages/bot/src/router.ts
-const COMMAND_ROLES: Record<string, Role[]> = {
-  meal:      ["EMPLOYEE", "TEAM_LEAD", "ADMIN", "LOGISTICS"],
-  location:  ["EMPLOYEE", "TEAM_LEAD", "ADMIN", "LOGISTICS"],
-  headcount: ["ADMIN", "LOGISTICS"],
-  summary:   ["ADMIN", "LOGISTICS"],
-  team:      ["TEAM_LEAD", "ADMIN"],
-};
-
-// Stub responses — replaced with real handlers in Issues 6–8
-const STUB_RESPONSES: Record<string, string> = {
-  meal:      "Meal commands are not yet implemented.",
-  location:  "Location commands are not yet implemented.",
-  headcount: "Headcount commands are not yet implemented.",
-  summary:   "Summary commands are not yet implemented.",
-  team:      "Team summary is not yet implemented.",
-};
-
-async function route(ctx: CommandContext): Promise<CommandResult> {
-  const allowedRoles = COMMAND_ROLES[ctx.commandName];
-
-  if (!allowedRoles) {
-    return { content: "Unknown command.", ephemeral: true };
+/**
+ * Parses subcommand and args from GChat argumentText.
+ * GChat sends everything after the slash command name as raw text.
+ *
+ * /meal status [date]         → parts: ["status", "<date>?"]
+ * /meal set <MEAL> <IN|OUT> [date] → parts: ["set", "LUNCH", "IN", "<date>?"]
+ */
+function parseMealArgs(
+  parts: string[]
+): Record<string, string | number | boolean | undefined> {
+  const subcommand = parts[0];
+  if (subcommand === "status") {
+    return { date: parts[1] }; // optional
   }
-
-  if (!requireRole(ctx.user, ...allowedRoles)) {
-    return { content: "You don't have permission to use this command.", ephemeral: true };
+  if (subcommand === "set") {
+    return {
+      meal: parts[1]?.toUpperCase(),   // e.g. "LUNCH"
+      status: parts[2]?.toUpperCase(), // e.g. "IN"
+      date: parts[3],                  // optional
+    };
   }
-
-  return { content: STUB_RESPONSES[ctx.commandName] ?? "Unknown command.", ephemeral: true };
+  return {};
 }
 
 export async function handler(
@@ -86,13 +75,14 @@ export async function handler(
   }
 
   // ------------------------------------------------------------------
-  // 3. Extract command name and subcommand
+  // 3. Extract command name and argumentText
   // ------------------------------------------------------------------
   const message = gchatEvent.message as Record<string, unknown> | undefined;
   const slashCommand = message?.slashCommand as Record<string, unknown> | undefined;
   const commandName = ((slashCommand?.commandName as string | undefined) ?? "").replace(/^\//, "");
   const argumentText = ((message?.argumentText as string | undefined) ?? "").trim();
-  const subcommand = argumentText.split(/\s+/)[0] || null;
+  const parts = argumentText.split(/\s+/).filter(Boolean);
+  const subcommand = parts[0] ?? null;
 
   // ------------------------------------------------------------------
   // 4. Resolve GChat user → internal User
@@ -105,14 +95,30 @@ export async function handler(
   }
 
   // ------------------------------------------------------------------
-  // 5. Build CommandContext and dispatch
+  // 5. Parse command args from argumentText
+  // ------------------------------------------------------------------
+  let args: Record<string, string | number | boolean | undefined> = {};
+
+  if (commandName === "meal") {
+    args = parseMealArgs(parts);
+
+    // Validate required args for /meal set before routing
+    if (subcommand === "set" && (!args["meal"] || !args["status"])) {
+      return textResponse(
+        "Usage: /meal set <meal> <IN|OUT> [date]\nMeal options: LUNCH, SNACKS, IFTAR, EVENT_DINNER, OPTIONAL_DINNER"
+      );
+    }
+  }
+
+  // ------------------------------------------------------------------
+  // 6. Build CommandContext and dispatch
   // ------------------------------------------------------------------
   const ctx: CommandContext = {
     user,
     platform: "gchat",
     commandName,
     subcommand,
-    args: {},
+    args,
   };
 
   const result = await route(ctx);

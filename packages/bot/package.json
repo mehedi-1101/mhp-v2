@@ -3,6 +3,10 @@
   "version": "0.0.1",
   "private": true,
   "main": "dist/index.js",
+  "exports": {
+    ".": "./dist/index.js",
+    "./router": "./dist/router.js"
+  },
   "scripts": {
     "build": "tsc",
     "typecheck": "tsc --noEmit"
