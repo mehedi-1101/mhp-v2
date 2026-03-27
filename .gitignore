@@ -3,3 +3,4 @@ dist/
 .env
 .sst/
 sst-env.d.ts
+scripts/users-seed.json
