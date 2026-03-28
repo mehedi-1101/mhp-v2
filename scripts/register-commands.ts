@@ -94,6 +94,44 @@ const commands = [
     name: "location",
     description: "View or update your work location (office/WFH)",
     type: 1,
+    options: [
+      {
+        name: "status",
+        description: "View your work location for a date",
+        type: 1, // SUB_COMMAND
+        options: [
+          {
+            name: "date",
+            description: "Date to check: today, tomorrow, or YYYY-MM-DD (default: today)",
+            type: 3, // STRING
+            required: false,
+          },
+        ],
+      },
+      {
+        name: "set",
+        description: "Set your work location",
+        type: 1, // SUB_COMMAND
+        options: [
+          {
+            name: "location",
+            description: "Office or WFH",
+            type: 3, // STRING
+            required: true,
+            choices: [
+              { name: "Office", value: "OFFICE" },
+              { name: "WFH", value: "WFH" },
+            ],
+          },
+          {
+            name: "date",
+            description: "Date to set: today, tomorrow, or YYYY-MM-DD (default: today)",
+            type: 3, // STRING
+            required: false,
+          },
+        ],
+      },
+    ],
   },
   {
     name: "headcount",

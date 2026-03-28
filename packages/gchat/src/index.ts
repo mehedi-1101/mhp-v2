@@ -28,21 +28,39 @@ function textResponse(text: string): APIGatewayProxyResultV2 {
  * Parses subcommand and args from GChat argumentText.
  * GChat sends everything after the slash command name as raw text.
  *
- * /meal status [date]         → parts: ["status", "<date>?"]
+ * /meal status [date]              → parts: ["status", "<date>?"]
  * /meal set <MEAL> <IN|OUT> [date] → parts: ["set", "LUNCH", "IN", "<date>?"]
+ * /location status [date]          → parts: ["status", "<date>?"]
+ * /location set <OFFICE|WFH> [date] → parts: ["set", "OFFICE", "<date>?"]
  */
 function parseMealArgs(
   parts: string[]
 ): Record<string, string | number | boolean | undefined> {
   const subcommand = parts[0];
   if (subcommand === "status") {
-    return { date: parts[1] }; // optional
+    return { date: parts[1] };
   }
   if (subcommand === "set") {
     return {
-      meal: parts[1]?.toUpperCase(),   // e.g. "LUNCH"
-      status: parts[2]?.toUpperCase(), // e.g. "IN"
-      date: parts[3],                  // optional
+      meal: parts[1]?.toUpperCase(),
+      status: parts[2]?.toUpperCase(),
+      date: parts[3],
+    };
+  }
+  return {};
+}
+
+function parseLocationArgs(
+  parts: string[]
+): Record<string, string | number | boolean | undefined> {
+  const subcommand = parts[0];
+  if (subcommand === "status") {
+    return { date: parts[1] };
+  }
+  if (subcommand === "set") {
+    return {
+      location: parts[1]?.toUpperCase(), // e.g. "OFFICE" or "WFH"
+      date: parts[2],
     };
   }
   return {};
@@ -102,11 +120,16 @@ export async function handler(
   if (commandName === "meal") {
     args = parseMealArgs(parts);
 
-    // Validate required args for /meal set before routing
     if (subcommand === "set" && (!args["meal"] || !args["status"])) {
       return textResponse(
         "Usage: /meal set <meal> <IN|OUT> [date]\nMeal options: LUNCH, SNACKS, IFTAR, EVENT_DINNER, OPTIONAL_DINNER"
       );
+    }
+  } else if (commandName === "location") {
+    args = parseLocationArgs(parts);
+
+    if (subcommand === "set" && !args["location"]) {
+      return textResponse("Usage: /location set <OFFICE|WFH> [date]");
     }
   }
 
