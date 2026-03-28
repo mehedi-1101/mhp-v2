@@ -137,6 +137,14 @@ const commands = [
     name: "headcount",
     description: "View meal headcount for a date (Admin/Logistics)",
     type: 1,
+    options: [
+      {
+        name: "date",
+        description: "Date to check: today, tomorrow, or YYYY-MM-DD (default: today)",
+        type: 3, // STRING
+        required: false,
+      },
+    ],
   },
   {
     name: "summary",
@@ -147,6 +155,21 @@ const commands = [
     name: "team",
     description: "View team participation summary (Team Lead/Admin)",
     type: 1,
+    options: [
+      {
+        name: "summary",
+        description: "Show team participation breakdown for a date",
+        type: 1, // SUB_COMMAND
+        options: [
+          {
+            name: "date",
+            description: "Date to check: today, tomorrow, or YYYY-MM-DD (default: today)",
+            type: 3, // STRING
+            required: false,
+          },
+        ],
+      },
+    ],
   },
 ];
 
