@@ -16,3 +16,14 @@ export async function getUserMeals(date: string, userId: string): Promise<Partic
 export async function putMealRecord(record: ParticipationRecord): Promise<void> {
   await docClient.send(new PutCommand({ TableName: getTableName(), Item: record }));
 }
+
+export async function getAllParticipationForDate(date: string): Promise<ParticipationRecord[]> {
+  const result = await docClient.send(
+    new QueryCommand({
+      TableName: getTableName(),
+      KeyConditionExpression: "PK = :pk",
+      ExpressionAttributeValues: { ":pk": `PART#${date}` },
+    })
+  );
+  return (result.Items ?? []) as ParticipationRecord[];
+}
