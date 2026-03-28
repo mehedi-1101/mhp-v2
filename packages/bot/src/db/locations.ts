@@ -1,4 +1,4 @@
-import { GetCommand } from "@aws-sdk/lib-dynamodb";
+import { GetCommand, PutCommand } from "@aws-sdk/lib-dynamodb";
 import type { WorkLocation } from "@mhp/core";
 import { docClient, getTableName } from "./client.js";
 
@@ -10,4 +10,8 @@ export async function getUserLocation(date: string, userId: string): Promise<Wor
     })
   );
   return (result.Item as WorkLocation) ?? null;
+}
+
+export async function putLocationRecord(record: WorkLocation): Promise<void> {
+  await docClient.send(new PutCommand({ TableName: getTableName(), Item: record }));
 }
