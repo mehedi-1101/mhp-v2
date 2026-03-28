@@ -74,12 +74,23 @@ export async function handler(
   const data = interaction.data as Record<string, unknown> | undefined;
   const commandName = (data?.name as string | undefined) ?? "unknown";
   const topOptions = data?.options as Array<Record<string, unknown>> | undefined;
-  const subcommand = (topOptions?.[0]?.name as string | undefined) ?? null;
-  const subOptions = topOptions?.[0]?.options as Array<Record<string, unknown>> | undefined;
+  const firstOpt = topOptions?.[0];
 
+  // Discord SUB_COMMAND has type 1. Top-level options (STRING, INTEGER, etc.) have other types.
+  // When the first option is a subcommand, args live inside its nested options.
+  // When there is no subcommand, args are the top-level options directly.
+  let subcommand: string | null = null;
   const args: Record<string, string | number | boolean | undefined> = {};
-  for (const opt of subOptions ?? []) {
-    args[opt.name as string] = opt.value as string | number | boolean | undefined;
+
+  if (firstOpt?.type === 1) {
+    subcommand = (firstOpt.name as string | undefined) ?? null;
+    for (const opt of (firstOpt.options as Array<Record<string, unknown>>) ?? []) {
+      args[opt.name as string] = opt.value as string | number | boolean | undefined;
+    }
+  } else {
+    for (const opt of topOptions ?? []) {
+      args[opt.name as string] = opt.value as string | number | boolean | undefined;
+    }
   }
 
   // ------------------------------------------------------------------
