@@ -100,7 +100,7 @@ export async function handler(
   const commandName = ((slashCommand?.commandName as string | undefined) ?? "").replace(/^\//, "");
   const argumentText = ((message?.argumentText as string | undefined) ?? "").trim();
   const parts = argumentText.split(/\s+/).filter(Boolean);
-  const subcommand = parts[0] ?? null;
+  let subcommand: string | null = parts[0] ?? null;
 
   // ------------------------------------------------------------------
   // 4. Resolve GChat user → internal User
@@ -131,6 +131,13 @@ export async function handler(
     if (subcommand === "set" && !args["location"]) {
       return textResponse("Usage: /location set <OFFICE|WFH> [date]");
     }
+  } else if (commandName === "headcount") {
+    // No subcommand — argumentText is just the optional date
+    subcommand = null;
+    args = { date: parts[0] };
+  } else if (commandName === "team") {
+    // subcommand is "summary", date follows it
+    args = { date: parts[1] };
   }
 
   // ------------------------------------------------------------------
