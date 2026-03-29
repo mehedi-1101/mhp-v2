@@ -21,7 +21,7 @@ Issues 5–8 add real command logic. This issue ensures the entire request lifec
 - Two Lambda Authorizers: Discord (Ed25519) and GChat (Google JWT)
 - Two Bot Lambdas: Discord Bot and GChat Bot
 - `CommandContext` and `CommandResult` interfaces added to `packages/core/src/types.ts`
-- Discord Bot: PING handler, user resolution via GSI 1, parse to CommandContext, dispatch
+- Discord Bot: PING handler, user resolution via GetItem (PK constructed from discordId), parse to CommandContext, dispatch
 - GChat Bot: user resolution via Scan, parse to CommandContext, dispatch (same handlers)
 - Command stubs return ephemeral placeholder responses on both platforms
 - `scripts/register-commands.ts` registers all 5 slash commands with Discord API
@@ -50,7 +50,7 @@ Discord API
                  ├─ verify Ed25519 signature → { isAuthorized: false } → 403
                  └─ { isAuthorized: true } → Discord Bot Lambda
                       ├─ handle PING (type 1) → { type: 1 }
-                      ├─ resolve discordId → User (discordId-index GSI)
+                      ├─ resolve discordId → User (GetItem, PK = USER#u#<discordId>)
                       ├─ build CommandContext
                       ├─ check role via requireRole()
                       ├─ dispatch to handler stub
@@ -78,7 +78,7 @@ packages/bot/src/
 ├── authorizer.ts       Discord Authorizer Lambda — Ed25519 verify, returns { isAuthorized }
 ├── index.ts            Discord Bot Lambda — PING, resolve user, build CommandContext, dispatch
 ├── router.ts           Command name → handler + role enforcement
-├── resolve.ts          discordId → User via discordId-index GSI
+├── resolve.ts          discordId → User via GetItem (PK = USER#u#<discordId>)
 ├── logger.ts           Structured JSON logging
 ├── db/
 │   └── client.ts       DynamoDB DocumentClient singleton
@@ -147,7 +147,11 @@ The GChat Authorizer and GChat Bot are scaffolded here but command responses are
 
 ### userId Format: `u#<discordId>`
 
-Users are identified internally as `u#<discordId>`. The `u#` prefix decouples internal identity from Discord — GChat users, future web dashboard users, or admin accounts can exist without restructuring the key namespace. The trade-off is one GSI lookup per Discord request (`discordId-index`). For GChat, user resolution uses `Scan + FilterExpression: gchatUserId = :id` — no additional GSI needed at 100 users.
+Users are identified internally as `u#<discordId>`. The `u#` prefix decouples internal identity from Discord — GChat users, future web dashboard users, or admin accounts can exist without restructuring the key namespace.
+
+Since `userId = u#<discordId>`, the User PK (`USER#u#<discordId>`) is directly constructable from the incoming discordId. Discord user resolution uses `GetItem` with the constructed PK — no GSI needed. For GChat, user resolution uses `Scan + FilterExpression: gchatUserId = :id` — no additional GSI needed at 100 users.
+
+The table has 1 GSI: `userId-date-index` (Participation + WorkLocation items — meal history and WFH monthly history).
 
 ### Structured Logging
 
