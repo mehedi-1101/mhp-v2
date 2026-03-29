@@ -20,7 +20,7 @@ Before any employee can use the bot, they must exist as a User record in DynamoD
 - `scripts/seed-users.ts` — reads a JSON file and writes User records to DynamoDB
 - `scripts/register-commands.ts` — registers all slash commands with Discord's API
 - `packages/core/src/auth.ts` — `requireRole()` utility (delivered in Issue 4, documented here)
-- `packages/bot/src/resolve.ts` — Discord user resolution via `discordId-index` GSI (Issue 4)
+- `packages/bot/src/resolve.ts` — Discord user resolution via GetItem (PK constructed from discordId, Issue 4)
 - `packages/gchat/src/resolve.ts` — GChat user resolution via Scan (new in this issue)
 
 ---
@@ -61,7 +61,7 @@ All commands are registered at once even though their handlers are stubs. Discor
 
 ### Discord
 
-`packages/bot/src/resolve.ts` takes a `discordId` and queries the `discordId-index` GSI to return the User record or `null`. Called once per Discord interaction. If `null`, the bot returns: "You are not registered in this system. Contact an admin."
+`packages/bot/src/resolve.ts` takes a `discordId`, constructs `PK = USER#u#<discordId>`, and does a `GetItem` on the main table. Since `userId = u#<discordId>`, the PK is directly known — no GSI needed. Returns the User record or `null`. If `null`, the bot returns: "You are not registered in this system. Contact an admin."
 
 ### GChat
 
@@ -75,7 +75,7 @@ All commands are registered at once even though their handlers are stubs. Discor
 
 | Operation | Method |
 |---|---|
-| Resolve Discord user | GSI `discordId-index` — Query |
+| Resolve Discord user | GetItem: PK = `USER#u#<discordId>`, SK = `USER#u#<discordId>` |
 | Resolve GChat user | Scan + `FilterExpression: gchatUserId = :id` |
 | Seed user | PutItem with `attribute_not_exists(PK)` condition |
 | Get all users (headcount) | Scan + `FilterExpression: entityType = "USER"` |
