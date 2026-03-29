@@ -164,4 +164,4 @@ This means an admin can correct a location entry after the fact, and the next `/
 - Admin override of another user's location (same pattern as meal — deferred)
 - WFH overage reporting (deferred to future iteration — the GSI data is available, the command is not in scope)
 - Company WFH period management (admin configures this via Settings — deferred to a settings command, not in this iteration)
-- Viewing location history per user per month via bot (deferred — data is queryable via GSI 2, but no bot command in this iteration)
+- Viewing location history per user per month via bot (deferred — data is queryable via `userId-date-index`, but no bot command in this iteration)
