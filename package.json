@@ -16,6 +16,7 @@
     "@aws-sdk/lib-dynamodb": "^3.0.0",
     "@typescript-eslint/eslint-plugin": "^8.0.0",
     "@typescript-eslint/parser": "^8.0.0",
+    "esbuild": "^0.24.0",
     "eslint": "^8.57.0",
     "prettier": "^3.3.0",
     "tsx": "^4.0.0",
