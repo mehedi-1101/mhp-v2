@@ -1,0 +1,17 @@
+# Copy this file to terraform.tfvars and fill in the values.
+# terraform.tfvars is git-ignored — never commit real secrets.
+
+aws_region = "ap-south-1"
+app_name   = "mhp-v2"
+
+# ---------------------------------------------------------------
+# Discord — get these from https://discord.com/developers/applications
+# ---------------------------------------------------------------
+discord_public_key = "paste_your_discord_public_key_here"
+
+# ---------------------------------------------------------------
+# Google Chat
+# Leave empty on first apply. After apply, copy gchat_interactions_url
+# from outputs, set it here, then run terraform apply again.
+# ---------------------------------------------------------------
+gchat_endpoint_url = ""

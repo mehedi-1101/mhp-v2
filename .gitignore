@@ -4,3 +4,11 @@ dist/
 .sst/
 sst-env.d.ts
 scripts/users-seed.json
+
+# Terraform — secrets, state, provider cache, build artifacts, and local-only docs
+terraform/terraform.tfvars
+terraform/terraform.tfstate
+terraform/terraform.tfstate.backup
+terraform/.terraform/
+terraform/.terraform-build/
+terraform/*.md
