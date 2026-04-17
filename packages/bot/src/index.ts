@@ -1,13 +1,18 @@
 /**
  * Discord Bot Lambda entry point.
  *
- * Request lifecycle (signature verification is handled by the Lambda Authorizer):
- *   1. Parse body
- *   2. Handle Discord PING (type 1) → { type: 1 }
- *   3. Build CommandContext from interaction data
- *   4. Resolve discordId → User → ephemeral error if not found
- *   5. Dispatch to command router (role check + handler)
- *   6. Format CommandResult → Discord JSON response
+ * Request lifecycle:
+ *   1. Verify Ed25519 signature (Discord requires this on every request)
+ *   2. Parse body
+ *   3. Handle Discord PING (type 1) → { type: 1 }
+ *   4. Build CommandContext from interaction data
+ *   5. Resolve discordId → User → ephemeral error if not found
+ *   6. Dispatch to command router (role check + handler)
+ *   7. Format CommandResult → Discord JSON response
+ *
+ * Signature verification is done here (not in a Lambda Authorizer) because
+ * API Gateway V2 Lambda Authorizers do not receive the request body. Ed25519
+ * verification requires the raw body, so it must happen in the main handler.
  *
  * All interactions are logged as structured JSON to CloudWatch.
  */
@@ -17,6 +22,7 @@ import type { CommandContext, CommandResult } from "@mhp/core";
 import { resolveUser } from "./resolve.js";
 import { route } from "./router.js";
 import { log, makeEntry } from "./logger.js";
+import { verifyDiscordRequest } from "./verify.js";
 
 const PING = 1;
 const APPLICATION_COMMAND = 2;
@@ -37,7 +43,19 @@ export async function handler(
   const startedAt = Date.now();
 
   // ------------------------------------------------------------------
-  // 1. Parse body
+  // 1. Verify Ed25519 signature
+  // ------------------------------------------------------------------
+  const signature = event.headers?.["x-signature-ed25519"] ?? "";
+  const timestamp = event.headers?.["x-signature-timestamp"] ?? "";
+  const rawBody = event.body ?? "";
+  const publicKey = process.env.DISCORD_PUBLIC_KEY ?? "";
+
+  if (!verifyDiscordRequest(signature, timestamp, rawBody, publicKey)) {
+    return { statusCode: 401, body: "Invalid request signature" };
+  }
+
+  // ------------------------------------------------------------------
+  // 2. Parse body
   // ------------------------------------------------------------------
   let interaction: Record<string, unknown>;
   try {
