@@ -25,7 +25,7 @@ if (!tableName) {
   process.exit(1);
 }
 
-const region = process.env.AWS_REGION ?? "ap-southeast-1";
+const region = process.env.AWS_REGION ?? "ap-south-1";
 const client = new DynamoDBClient({ region });
 const docClient = DynamoDBDocumentClient.from(client);
 
