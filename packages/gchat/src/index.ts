@@ -16,11 +16,21 @@ import { route } from "@mhp/bot/router";
 import { resolveGChatUser } from "./resolve.js";
 import { log, makeEntry } from "./logger.js";
 
+// Google Workspace Add-ons Chat apps require this nested structure.
+// { "text": "..." } is the legacy standalone bot format and is ignored.
 function textResponse(text: string): APIGatewayProxyResultV2 {
   return {
     statusCode: 200,
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ text }),
+    body: JSON.stringify({
+      hostAppDataAction: {
+        chatDataAction: {
+          createMessageAction: {
+            message: { text },
+          },
+        },
+      },
+    }),
   };
 }
 
@@ -76,16 +86,21 @@ export async function handler(
   // ------------------------------------------------------------------
   let gchatEvent: Record<string, unknown>;
   try {
-    gchatEvent = JSON.parse(event.body ?? "") as Record<string, unknown>;
+    const rawBody = event.isBase64Encoded
+      ? Buffer.from(event.body ?? "", "base64").toString("utf-8")
+      : (event.body ?? "");
+    gchatEvent = JSON.parse(rawBody) as Record<string, unknown>;
   } catch {
     return { statusCode: 400, body: "Invalid JSON body" };
   }
 
   // ------------------------------------------------------------------
   // 2. Extract gchatUserId
-  // Google Chat sends the sender as { name: "users/<id>" }
+  // Newer GChat API wraps all Chat-specific fields under the "chat" key.
+  // User ID is at chat.user.name (e.g. "users/12345").
   // ------------------------------------------------------------------
-  const sender = gchatEvent.user as Record<string, unknown> | undefined;
+  const chat = gchatEvent.chat as Record<string, unknown> | undefined;
+  const sender = chat?.user as Record<string, unknown> | undefined;
   const gchatUserId = (sender?.name as string | undefined) ?? "";
 
   if (!gchatUserId) {
@@ -94,11 +109,14 @@ export async function handler(
 
   // ------------------------------------------------------------------
   // 3. Extract command name and argumentText
+  // Slash command data is in chat.appCommandPayload.message — not chat.message.
+  // commandName is parsed from message.text ("/meal status" → "meal").
   // ------------------------------------------------------------------
-  const message = gchatEvent.message as Record<string, unknown> | undefined;
-  const slashCommand = message?.slashCommand as Record<string, unknown> | undefined;
-  const commandName = ((slashCommand?.commandName as string | undefined) ?? "").replace(/^\//, "");
-  const argumentText = ((message?.argumentText as string | undefined) ?? "").trim();
+  const appCommandPayload = (chat as Record<string, unknown>)?.["appCommandPayload"] as Record<string, unknown> | undefined;
+  const message = appCommandPayload?.["message"] as Record<string, unknown> | undefined;
+  const messageText = ((message?.["text"] as string | undefined) ?? "").trim();
+  const commandName = messageText.split(/\s+/)[0]?.replace(/^\//, "") ?? "";
+  const argumentText = ((message?.["argumentText"] as string | undefined) ?? "").trim();
   const parts = argumentText.split(/\s+/).filter(Boolean);
   let subcommand: string | null = parts[0] ?? null;
 
