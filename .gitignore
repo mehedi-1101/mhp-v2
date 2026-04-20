@@ -4,6 +4,7 @@ dist/
 .sst/
 sst-env.d.ts
 scripts/users-seed.json
+gchat-ids.json
 
 # Terraform — secrets, state, provider cache, build artifacts, and local-only docs
 terraform/terraform.tfvars
