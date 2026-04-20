@@ -25,15 +25,15 @@ export async function handler(
   try {
     const authHeader = event.headers?.["authorization"] ?? "";
     const token = authHeader.replace(/^Bearer\s+/i, "");
+    const audience = process.env.GCHAT_ENDPOINT_URL ?? "";
 
     if (!token) return { isAuthorized: false };
 
-    const audience = process.env.GCHAT_ENDPOINT_URL ?? "";
     const ticket = await client.verifyIdToken({ idToken: token, audience });
     const payload = ticket.getPayload();
 
-    // Google Chat requests are issued by Google's Chat service account
-    const isGoogleChat = payload?.iss === "chat@system.gserviceaccount.com";
+    // Google Chat requests are issued by Google's OAuth2 service (newer Chat API)
+    const isGoogleChat = payload?.iss === "https://accounts.google.com";
     return { isAuthorized: !!payload && isGoogleChat };
   } catch {
     return { isAuthorized: false };
