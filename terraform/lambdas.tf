@@ -29,6 +29,7 @@ resource "aws_lambda_function" "discord_bot" {
   filename         = data.archive_file.discord_bot.output_path
   source_code_hash = data.archive_file.discord_bot.output_base64sha256
   timeout          = 30
+  memory_size      = 256
 
   environment {
     variables = {
