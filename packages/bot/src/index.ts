@@ -38,16 +38,22 @@ function toDiscordResponse(result: CommandResult): Record<string, unknown> {
 }
 
 export async function handler(
-  event: APIGatewayProxyEventV2
+  event: APIGatewayProxyEventV2 | Record<string, unknown>
 ): Promise<APIGatewayProxyResultV2> {
+  // EventBridge warm-up ping — keeps Lambda warm to avoid cold-start timeouts
+  if ((event as Record<string, unknown>).source === "aws.events") {
+    return { statusCode: 200, body: "warm" };
+  }
+
+  const apiEvent = event as APIGatewayProxyEventV2;
   const startedAt = Date.now();
 
   // ------------------------------------------------------------------
   // 1. Verify Ed25519 signature
   // ------------------------------------------------------------------
-  const signature = event.headers?.["x-signature-ed25519"] ?? "";
-  const timestamp = event.headers?.["x-signature-timestamp"] ?? "";
-  const rawBody = event.body ?? "";
+  const signature = apiEvent.headers?.["x-signature-ed25519"] ?? "";
+  const timestamp = apiEvent.headers?.["x-signature-timestamp"] ?? "";
+  const rawBody = apiEvent.body ?? "";
   const publicKey = process.env.DISCORD_PUBLIC_KEY ?? "";
 
   if (!verifyDiscordRequest(signature, timestamp, rawBody, publicKey)) {
@@ -59,7 +65,7 @@ export async function handler(
   // ------------------------------------------------------------------
   let interaction: Record<string, unknown>;
   try {
-    interaction = JSON.parse(event.body ?? "") as Record<string, unknown>;
+    interaction = JSON.parse(apiEvent.body ?? "") as Record<string, unknown>;
   } catch {
     return { statusCode: 400, body: "Invalid JSON body" };
   }
