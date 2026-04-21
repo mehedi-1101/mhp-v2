@@ -15,3 +15,13 @@ discord_public_key = "paste_your_discord_public_key_here"
 # from outputs, set it here, then run terraform apply again.
 # ---------------------------------------------------------------
 gchat_endpoint_url = ""
+
+# ---------------------------------------------------------------
+# Summary Generation (Issue 9)
+# discord_bot_token: Same token used for scripts/register-commands.ts
+# discord_summary_channel_id: Discord channel ID for posting summaries (right-click channel → Copy ID)
+# gchat_summary_webhook_url: GChat webhook URL from MHP-Logistics space
+# ---------------------------------------------------------------
+discord_bot_token          = "paste_your_discord_bot_token_here"
+discord_summary_channel_id = "paste_discord_channel_id_here"
+gchat_summary_webhook_url  = "paste_gchat_webhook_url_here"

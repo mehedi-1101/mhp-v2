@@ -1,7 +1,8 @@
-# Lambda functions — three total:
+# Lambda functions — four total:
 #   1. discord-bot         — handles Discord slash commands (includes Ed25519 verification)
 #   2. gchat-authorizer    — Google OIDC JWT verification
 #   3. gchat-bot           — handles Google Chat slash commands
+#   4. summary-worker      — processes async summary generation from SQS
 #
 # Note: The discord-authorizer Lambda has been removed. API Gateway V2 Lambda Authorizers
 # do not receive the request body, making Ed25519 signature verification impossible there.
@@ -35,6 +36,7 @@ resource "aws_lambda_function" "discord_bot" {
     variables = {
       MHP_TABLE          = aws_dynamodb_table.mhp.name
       DISCORD_PUBLIC_KEY = var.discord_public_key
+      SUMMARY_QUEUE_URL  = aws_sqs_queue.summary_queue.url
     }
   }
 
@@ -94,9 +96,45 @@ resource "aws_lambda_function" "gchat_bot" {
 
   environment {
     variables = {
-      MHP_TABLE = aws_dynamodb_table.mhp.name
+      MHP_TABLE          = aws_dynamodb_table.mhp.name
+      SUMMARY_QUEUE_URL  = aws_sqs_queue.summary_queue.url
     }
   }
 
   tags = { Name = "${var.app_name}-gchat-bot" }
+}
+
+# ---------------------------------------------------------------
+# Summary Worker Lambda
+# entry: packages/bot/src/worker.ts → .terraform-build/summary-worker/worker.js
+# Consumes SQS messages, generates summaries, posts to Discord + GChat.
+# ---------------------------------------------------------------
+data "archive_file" "summary_worker" {
+  type        = "zip"
+  source_dir  = "${path.module}/.terraform-build/summary-worker"
+  output_path = "${path.module}/.terraform-build/summary-worker.zip"
+
+  depends_on = [null_resource.build]
+}
+
+resource "aws_lambda_function" "summary_worker" {
+  function_name    = "${var.app_name}-summary-worker"
+  role             = aws_iam_role.summary_worker.arn
+  runtime          = "nodejs20.x"
+  handler          = "worker.handler"
+  filename         = data.archive_file.summary_worker.output_path
+  source_code_hash = data.archive_file.summary_worker.output_base64sha256
+  timeout          = 60
+  memory_size      = 256
+
+  environment {
+    variables = {
+      MHP_TABLE                  = aws_dynamodb_table.mhp.name
+      DISCORD_SUMMARY_CHANNEL_ID = var.discord_summary_channel_id
+      DISCORD_BOT_TOKEN          = var.discord_bot_token
+      GCHAT_SUMMARY_WEBHOOK_URL  = var.gchat_summary_webhook_url
+    }
+  }
+
+  tags = { Name = "${var.app_name}-summary-worker" }
 }

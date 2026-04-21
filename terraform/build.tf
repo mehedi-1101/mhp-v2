@@ -54,4 +54,11 @@ resource "null_resource" "build" {
     command     = "npx esbuild packages/gchat/src/index.ts --bundle --platform=node --target=node20 --outfile=terraform/.terraform-build/gchat-bot/index.js"
     interpreter = ["cmd", "/C"]
   }
+
+  # Step 6: bundle Summary Worker Lambda
+  provisioner "local-exec" {
+    working_dir = "${path.module}/.."
+    command     = "npx esbuild packages/bot/src/worker.ts --bundle --platform=node --target=node20 --outfile=terraform/.terraform-build/summary-worker/worker.js"
+    interpreter = ["cmd", "/C"]
+  }
 }

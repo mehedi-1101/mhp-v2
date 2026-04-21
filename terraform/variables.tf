@@ -26,3 +26,26 @@ variable "gchat_endpoint_url" {
   type        = string
   default     = ""
 }
+
+# ---------------------------------------------------------------
+# Summary generation secrets
+# ---------------------------------------------------------------
+variable "discord_summary_channel_id" {
+  description = "Discord channel ID where daily summaries are posted"
+  type        = string
+  default     = ""
+}
+
+variable "discord_bot_token" {
+  description = "Discord bot token — used by summary worker to post messages"
+  type        = string
+  sensitive   = true
+  default     = ""
+}
+
+variable "gchat_summary_webhook_url" {
+  description = "Google Chat incoming webhook URL for posting summaries"
+  type        = string
+  sensitive   = true
+  default     = ""
+}
