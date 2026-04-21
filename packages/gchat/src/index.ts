@@ -156,6 +156,9 @@ export async function handler(
   } else if (commandName === "team") {
     // subcommand is "summary", date follows it
     args = { date: parts[1] };
+  } else if (commandName === "summary") {
+    // subcommand is "generate" or "status", date follows it
+    args = { date: parts[1] };
   }
 
   // ------------------------------------------------------------------

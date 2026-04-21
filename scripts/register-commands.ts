@@ -150,6 +150,34 @@ const commands = [
     name: "summary",
     description: "Generate or check daily meal summary (Admin/Logistics)",
     type: 1,
+    options: [
+      {
+        name: "generate",
+        description: "Generate a new daily summary",
+        type: 1, // SUB_COMMAND
+        options: [
+          {
+            name: "date",
+            description: "Date to summarize: today, tomorrow, or YYYY-MM-DD (default: today)",
+            type: 3, // STRING
+            required: false,
+          },
+        ],
+      },
+      {
+        name: "status",
+        description: "Check the status of a summary job",
+        type: 1, // SUB_COMMAND
+        options: [
+          {
+            name: "date",
+            description: "Date to check: today, tomorrow, or YYYY-MM-DD (default: today)",
+            type: 3, // STRING
+            required: false,
+          },
+        ],
+      },
+    ],
   },
   {
     name: "team",
