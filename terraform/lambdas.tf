@@ -105,6 +105,38 @@ resource "aws_lambda_function" "gchat_bot" {
 }
 
 # ---------------------------------------------------------------
+# Summary Scheduler Lambda
+# entry: packages/bot/src/scheduler.ts → .terraform-build/summary-scheduler/scheduler.js
+# Triggered by EventBridge at 9 PM Dhaka — creates SummaryJob for tomorrow and pushes to SQS.
+# ---------------------------------------------------------------
+data "archive_file" "summary_scheduler" {
+  type        = "zip"
+  source_dir  = "${path.module}/.terraform-build/summary-scheduler"
+  output_path = "${path.module}/.terraform-build/summary-scheduler.zip"
+
+  depends_on = [null_resource.build]
+}
+
+resource "aws_lambda_function" "summary_scheduler" {
+  function_name    = "${var.app_name}-summary-scheduler"
+  role             = aws_iam_role.summary_scheduler.arn
+  runtime          = "nodejs20.x"
+  handler          = "scheduler.handler"
+  filename         = data.archive_file.summary_scheduler.output_path
+  source_code_hash = data.archive_file.summary_scheduler.output_base64sha256
+  timeout          = 30
+
+  environment {
+    variables = {
+      MHP_TABLE         = aws_dynamodb_table.mhp.name
+      SUMMARY_QUEUE_URL = aws_sqs_queue.summary_queue.url
+    }
+  }
+
+  tags = { Name = "${var.app_name}-summary-scheduler" }
+}
+
+# ---------------------------------------------------------------
 # Summary Worker Lambda
 # entry: packages/bot/src/worker.ts → .terraform-build/summary-worker/worker.js
 # Consumes SQS messages, generates summaries, posts to Discord + GChat.

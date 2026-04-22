@@ -61,4 +61,11 @@ resource "null_resource" "build" {
     command     = "npx esbuild packages/bot/src/worker.ts --bundle --platform=node --target=node20 --outfile=terraform/.terraform-build/summary-worker/worker.js"
     interpreter = ["cmd", "/C"]
   }
+
+  # Step 7: bundle Summary Scheduler Lambda
+  provisioner "local-exec" {
+    working_dir = "${path.module}/.."
+    command     = "npx esbuild packages/bot/src/scheduler.ts --bundle --platform=node --target=node20 --outfile=terraform/.terraform-build/summary-scheduler/scheduler.js"
+    interpreter = ["cmd", "/C"]
+  }
 }

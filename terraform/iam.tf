@@ -93,6 +93,30 @@ resource "aws_iam_role_policy_attachment" "summary_worker_logs" {
 }
 
 # ---------------------------------------------------------------
+# Summary Scheduler Lambda role
+# Needs: DynamoDB (write SummaryJob), SQS (send), CloudWatch Logs
+# ---------------------------------------------------------------
+resource "aws_iam_role" "summary_scheduler" {
+  name               = "${var.app_name}-summary-scheduler-role"
+  assume_role_policy = data.aws_iam_policy_document.lambda_trust.json
+}
+
+resource "aws_iam_role_policy_attachment" "summary_scheduler_dynamo" {
+  role       = aws_iam_role.summary_scheduler.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonDynamoDBFullAccess"
+}
+
+resource "aws_iam_role_policy_attachment" "summary_scheduler_sqs" {
+  role       = aws_iam_role.summary_scheduler.name
+  policy_arn = aws_iam_policy.sqs_send.arn
+}
+
+resource "aws_iam_role_policy_attachment" "summary_scheduler_logs" {
+  role       = aws_iam_role.summary_scheduler.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+}
+
+# ---------------------------------------------------------------
 # Discord Bot + GChat Bot — SQS send permissions
 # Both bots need to push messages to the summary queue.
 # ---------------------------------------------------------------
