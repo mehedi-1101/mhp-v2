@@ -19,13 +19,13 @@ export function verifyDiscordRequest(
   signature: string,
   timestamp: string,
   rawBody: string,
-  publicKey: string
+  publicKey: Uint8Array
 ): boolean {
   try {
     return nacl.sign.detached.verify(
       Buffer.from(timestamp + rawBody),
       Buffer.from(signature, "hex"),
-      Buffer.from(publicKey, "hex")
+      publicKey
     );
   } catch {
     // Invalid hex strings or malformed inputs should be treated as failed verification

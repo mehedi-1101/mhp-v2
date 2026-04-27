@@ -26,6 +26,7 @@ import { verifyDiscordRequest } from "./verify.js";
 
 const PING = 1;
 const APPLICATION_COMMAND = 2;
+const PUBLIC_KEY = Buffer.from(process.env.DISCORD_PUBLIC_KEY ?? "", "hex");
 
 function toDiscordResponse(result: CommandResult): Record<string, unknown> {
   return {
@@ -49,9 +50,8 @@ export async function handler(
   const signature = apiEvent.headers?.["x-signature-ed25519"] ?? "";
   const timestamp = apiEvent.headers?.["x-signature-timestamp"] ?? "";
   const rawBody = apiEvent.body ?? "";
-  const publicKey = process.env.DISCORD_PUBLIC_KEY ?? "";
 
-  if (!verifyDiscordRequest(signature, timestamp, rawBody, publicKey)) {
+  if (!verifyDiscordRequest(signature, timestamp, rawBody, PUBLIC_KEY)) {
     return { statusCode: 401, body: "Invalid request signature" };
   }
 
