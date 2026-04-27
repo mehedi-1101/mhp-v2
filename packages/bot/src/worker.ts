@@ -81,10 +81,16 @@ async function processSummaryJob(date: string, jobId: string): Promise<void> {
 
     const message = formatHeadcountReport(report);
 
-    await Promise.all([
+    const postResults = await Promise.allSettled([
       postToDiscord(message),
       postToGChat(message),
     ]);
+
+    for (const result of postResults) {
+      if (result.status === "rejected") {
+        console.error(`Post failed: ${result.reason}`);
+      }
+    }
 
     job.status = "READY";
     job.result = { date, formattedMessage: message };
