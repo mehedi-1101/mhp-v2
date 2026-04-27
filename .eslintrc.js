@@ -14,5 +14,5 @@ module.exports = {
     // Allow unused vars that start with _ (common pattern for intentionally unused params)
     "@typescript-eslint/no-unused-vars": ["error", { argsIgnorePattern: "^_" }],
   },
-  ignorePatterns: ["dist/", "node_modules/", "mhp-v1/", "sst.config.ts", "*.js"],
+  ignorePatterns: ["dist/", "node_modules/", "mhp-v1/", "*.js"],
 };
