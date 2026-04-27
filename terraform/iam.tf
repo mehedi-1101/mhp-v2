@@ -1,5 +1,9 @@
 # IAM — roles and policies for all Lambda functions.
 # Lambda functions assume roles to get DynamoDB, SQS, and CloudWatch Logs access — no hardcoded credentials.
+#
+# DynamoDB access uses scoped inline policies — each role is granted only the
+# actions it actually performs on the specific mhp-v2 table. No role has
+# AmazonDynamoDBFullAccess (which would grant access to every table in the account).
 
 # ---------------------------------------------------------------
 # Shared trust policy — allows Lambda service to assume these roles
@@ -25,9 +29,18 @@ resource "aws_iam_role" "discord_bot" {
   assume_role_policy = data.aws_iam_policy_document.lambda_trust.json
 }
 
-resource "aws_iam_role_policy_attachment" "discord_bot_dynamo" {
-  role       = aws_iam_role.discord_bot.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonDynamoDBFullAccess"
+resource "aws_iam_role_policy" "discord_bot_dynamo" {
+  name = "dynamo-scoped"
+  role = aws_iam_role.discord_bot.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect   = "Allow"
+      Action   = ["dynamodb:GetItem", "dynamodb:PutItem", "dynamodb:Query"]
+      Resource = [aws_dynamodb_table.mhp.arn, "${aws_dynamodb_table.mhp.arn}/index/*"]
+    }]
+  })
 }
 
 resource "aws_iam_role_policy_attachment" "discord_bot_logs" {
@@ -44,9 +57,18 @@ resource "aws_iam_role" "gchat_bot" {
   assume_role_policy = data.aws_iam_policy_document.lambda_trust.json
 }
 
-resource "aws_iam_role_policy_attachment" "gchat_bot_dynamo" {
-  role       = aws_iam_role.gchat_bot.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonDynamoDBFullAccess"
+resource "aws_iam_role_policy" "gchat_bot_dynamo" {
+  name = "dynamo-scoped"
+  role = aws_iam_role.gchat_bot.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect   = "Allow"
+      Action   = ["dynamodb:GetItem", "dynamodb:PutItem", "dynamodb:Query", "dynamodb:Scan"]
+      Resource = [aws_dynamodb_table.mhp.arn, "${aws_dynamodb_table.mhp.arn}/index/*"]
+    }]
+  })
 }
 
 resource "aws_iam_role_policy_attachment" "gchat_bot_logs" {
@@ -63,9 +85,18 @@ resource "aws_iam_role" "summary_worker" {
   assume_role_policy = data.aws_iam_policy_document.lambda_trust.json
 }
 
-resource "aws_iam_role_policy_attachment" "summary_worker_dynamo" {
-  role       = aws_iam_role.summary_worker.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonDynamoDBFullAccess"
+resource "aws_iam_role_policy" "summary_worker_dynamo" {
+  name = "dynamo-scoped"
+  role = aws_iam_role.summary_worker.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect   = "Allow"
+      Action   = ["dynamodb:GetItem", "dynamodb:PutItem", "dynamodb:Query", "dynamodb:Scan"]
+      Resource = [aws_dynamodb_table.mhp.arn, "${aws_dynamodb_table.mhp.arn}/index/*"]
+    }]
+  })
 }
 
 resource "aws_iam_role_policy_attachment" "summary_worker_sqs" {
@@ -87,9 +118,18 @@ resource "aws_iam_role" "summary_scheduler" {
   assume_role_policy = data.aws_iam_policy_document.lambda_trust.json
 }
 
-resource "aws_iam_role_policy_attachment" "summary_scheduler_dynamo" {
-  role       = aws_iam_role.summary_scheduler.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonDynamoDBFullAccess"
+resource "aws_iam_role_policy" "summary_scheduler_dynamo" {
+  name = "dynamo-scoped"
+  role = aws_iam_role.summary_scheduler.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect   = "Allow"
+      Action   = ["dynamodb:PutItem"]
+      Resource = [aws_dynamodb_table.mhp.arn]
+    }]
+  })
 }
 
 resource "aws_iam_role_policy_attachment" "summary_scheduler_sqs" {
