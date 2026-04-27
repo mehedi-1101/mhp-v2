@@ -31,6 +31,7 @@ resource "aws_lambda_function" "discord_bot" {
   handler          = "index.handler"
   filename         = data.archive_file.discord_bot.output_path
   source_code_hash = data.archive_file.discord_bot.output_base64sha256
+  architectures    = ["arm64"]
   timeout          = 30
   memory_size      = 256
 
@@ -64,7 +65,9 @@ resource "aws_lambda_function" "gchat_bot" {
   handler          = "index.handler"
   filename         = data.archive_file.gchat_bot.output_path
   source_code_hash = data.archive_file.gchat_bot.output_base64sha256
+  architectures    = ["arm64"]
   timeout          = 30
+  memory_size      = 256
 
   environment {
     variables = {
@@ -96,7 +99,9 @@ resource "aws_lambda_function" "summary_scheduler" {
   handler          = "scheduler.handler"
   filename         = data.archive_file.summary_scheduler.output_path
   source_code_hash = data.archive_file.summary_scheduler.output_base64sha256
+  architectures    = ["arm64"]
   timeout          = 30
+  memory_size      = 256
 
   environment {
     variables = {
@@ -128,6 +133,7 @@ resource "aws_lambda_function" "summary_worker" {
   handler          = "worker.handler"
   filename         = data.archive_file.summary_worker.output_path
   source_code_hash = data.archive_file.summary_worker.output_base64sha256
+  architectures    = ["arm64"]
   timeout          = 60
   memory_size      = 256
 
