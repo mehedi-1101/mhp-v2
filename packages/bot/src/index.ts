@@ -2,7 +2,6 @@
  * Discord Bot Lambda entry point.
  *
  * Request lifecycle:
- *   0. Short-circuit EventBridge warm-up pings (event.source === "aws.events")
  *   1. Verify Ed25519 signature (Discord requires this on every request)
  *   2. Parse body
  *   3. Handle Discord PING (type 1) → { type: 1 }
@@ -39,14 +38,9 @@ function toDiscordResponse(result: CommandResult): Record<string, unknown> {
 }
 
 export async function handler(
-  event: APIGatewayProxyEventV2 | Record<string, unknown>
+  event: APIGatewayProxyEventV2
 ): Promise<APIGatewayProxyResultV2> {
-  // EventBridge warm-up ping — keeps Lambda warm to avoid cold-start timeouts
-  if ((event as Record<string, unknown>).source === "aws.events") {
-    return { statusCode: 200, body: "warm" };
-  }
-
-  const apiEvent = event as APIGatewayProxyEventV2;
+  const apiEvent = event;
   const startedAt = Date.now();
 
   // ------------------------------------------------------------------
