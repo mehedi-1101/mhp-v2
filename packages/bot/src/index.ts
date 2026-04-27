@@ -2,6 +2,7 @@
  * Discord Bot Lambda entry point.
  *
  * Request lifecycle:
+ *   0. Short-circuit EventBridge warm-up pings (event.source === "aws.events")
  *   1. Verify Ed25519 signature (Discord requires this on every request)
  *   2. Parse body
  *   3. Handle Discord PING (type 1) → { type: 1 }

@@ -1,5 +1,5 @@
 # IAM — roles and policies for all Lambda functions.
-# Lambda functions assume roles to get DynamoDB and SSM access — no hardcoded credentials.
+# Lambda functions assume roles to get DynamoDB, SQS, and CloudWatch Logs access — no hardcoded credentials.
 
 # ---------------------------------------------------------------
 # Shared trust policy — allows Lambda service to assume these roles
@@ -18,7 +18,7 @@ data "aws_iam_policy_document" "lambda_trust" {
 # ---------------------------------------------------------------
 # Discord Bot Lambda role
 # Needs: DynamoDB (read/write), CloudWatch Logs
-# Does NOT need SSM — DISCORD_PUBLIC_KEY is passed as an env var from Terraform
+# DISCORD_PUBLIC_KEY is passed as a Lambda env var from Terraform — safe as plain text (it's a public key).
 # ---------------------------------------------------------------
 resource "aws_iam_role" "discord_bot" {
   name               = "${var.app_name}-discord-bot-role"

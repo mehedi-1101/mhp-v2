@@ -9,9 +9,9 @@
  *   npx tsx scripts/seed-settings.ts
  *
  * Prerequisites:
- *   - AWS credentials configured (aws configure or AWS_PROFILE env var)
- *   - MHP_TABLE env var set (copy .env.example to .env and fill in)
- *   - SST has been deployed at least once so the table exists (npx sst deploy)
+ *   - AWS credentials configured (run `. .\mfa-auth.ps1` for MFA session)
+ *   - MHP_TABLE env var set to the deployed DynamoDB table name
+ *   - Terraform has been applied at least once so the table exists (`cd terraform && terraform apply`)
  */
 
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
@@ -21,7 +21,7 @@ import type { Settings } from "../packages/core/src/types.js";
 const tableName = process.env.MHP_TABLE;
 if (!tableName) {
   console.error("Error: MHP_TABLE environment variable is not set.");
-  console.error("Copy .env.example to .env and set the MHP_TABLE value.");
+  console.error("Set MHP_TABLE to the deployed DynamoDB table name (see `terraform output dynamodb_table_name`).");
   process.exit(1);
 }
 

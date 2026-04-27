@@ -41,28 +41,28 @@ resource "null_resource" "build" {
     interpreter = ["cmd", "/C"]
   }
 
-  # Step 4: bundle GChat Authorizer Lambda
+  # Step 3: bundle GChat Authorizer Lambda
   provisioner "local-exec" {
     working_dir = "${path.module}/.."
     command     = "npx esbuild packages/gchat/src/authorizer.ts --bundle --platform=node --target=node20 --outfile=terraform/.terraform-build/gchat-authorizer/authorizer.js"
     interpreter = ["cmd", "/C"]
   }
 
-  # Step 5: bundle GChat Bot Lambda
+  # Step 4: bundle GChat Bot Lambda
   provisioner "local-exec" {
     working_dir = "${path.module}/.."
     command     = "npx esbuild packages/gchat/src/index.ts --bundle --platform=node --target=node20 --outfile=terraform/.terraform-build/gchat-bot/index.js"
     interpreter = ["cmd", "/C"]
   }
 
-  # Step 6: bundle Summary Worker Lambda
+  # Step 5: bundle Summary Worker Lambda
   provisioner "local-exec" {
     working_dir = "${path.module}/.."
     command     = "npx esbuild packages/bot/src/worker.ts --bundle --platform=node --target=node20 --outfile=terraform/.terraform-build/summary-worker/worker.js"
     interpreter = ["cmd", "/C"]
   }
 
-  # Step 7: bundle Summary Scheduler Lambda
+  # Step 6: bundle Summary Scheduler Lambda
   provisioner "local-exec" {
     working_dir = "${path.module}/.."
     command     = "npx esbuild packages/bot/src/scheduler.ts --bundle --platform=node --target=node20 --outfile=terraform/.terraform-build/summary-scheduler/scheduler.js"

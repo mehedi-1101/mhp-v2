@@ -2,8 +2,7 @@
  * DynamoDB DocumentClient singleton.
  *
  * Created once per Lambda container and reused across warm invocations.
- * The table name is read from MHP_TABLE env var, which SST injects at
- * deploy time and sst dev injects during local development.
+ * The table name is read from MHP_TABLE env var, set by Terraform at deploy time.
  */
 
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";

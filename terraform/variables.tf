@@ -13,7 +13,7 @@ variable "app_name" {
 # Store them in terraform.tfvars (git-ignored) or pass via -var.
 # ---------------------------------------------------------------
 variable "discord_public_key" {
-  description = "Discord application public key — used by Discord Authorizer Lambda for Ed25519 signature verification"
+  description = "Discord application public key — used by Discord Bot Lambda for Ed25519 signature verification (in main handler, not an authorizer)"
   type        = string
   sensitive   = true
 }

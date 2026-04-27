@@ -1,4 +1,4 @@
-# DynamoDB single table — mirrors the SST table definition in packages/infra/src/tables.ts
+# DynamoDB single table — defines the only DynamoDB table used by all Lambda functions.
 #
 # Key namespace:
 #   User          PK: USER#<userId>       SK: USER#<userId>

@@ -1,8 +1,9 @@
-# Lambda functions — four total:
+# Lambda functions — five total:
 #   1. discord-bot         — handles Discord slash commands (includes Ed25519 verification)
 #   2. gchat-authorizer    — Google OIDC JWT verification
 #   3. gchat-bot           — handles Google Chat slash commands
 #   4. summary-worker      — processes async summary generation from SQS
+#   5. summary-scheduler   — EventBridge cron creates daily SummaryJob and pushes to SQS
 #
 # Note: The discord-authorizer Lambda has been removed. API Gateway V2 Lambda Authorizers
 # do not receive the request body, making Ed25519 signature verification impossible there.

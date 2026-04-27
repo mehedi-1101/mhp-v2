@@ -8,8 +8,8 @@
  *   npx tsx scripts/register-commands.ts
  *
  * Prerequisites:
- *   - DISCORD_BOT_TOKEN set in .env (or environment)
- *   - DISCORD_APPLICATION_ID set in .env (or environment)
+ *   - DISCORD_BOT_TOKEN set in environment
+ *   - DISCORD_APPLICATION_ID set in environment
  *
  * This script uses Discord's bulk overwrite endpoint — it replaces all
  * registered commands with the definitions below. Safe to re-run.
