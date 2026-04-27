@@ -47,6 +47,10 @@ resource "aws_apigatewayv2_authorizer" "gchat" {
     issuer   = "https://accounts.google.com"
     audience = [var.gchat_endpoint_url]
   }
+
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 # ---------------------------------------------------------------
