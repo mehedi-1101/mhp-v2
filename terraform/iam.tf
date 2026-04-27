@@ -55,20 +55,6 @@ resource "aws_iam_role_policy_attachment" "gchat_bot_logs" {
 }
 
 # ---------------------------------------------------------------
-# GChat Authorizer Lambda role
-# Needs: CloudWatch Logs only — makes outbound HTTPS to Google's public keys (no AWS perms needed)
-# ---------------------------------------------------------------
-resource "aws_iam_role" "gchat_authorizer" {
-  name               = "${var.app_name}-gchat-authorizer-role"
-  assume_role_policy = data.aws_iam_policy_document.lambda_trust.json
-}
-
-resource "aws_iam_role_policy_attachment" "gchat_authorizer_logs" {
-  role       = aws_iam_role.gchat_authorizer.name
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
-}
-
-# ---------------------------------------------------------------
 # Summary Worker Lambda role
 # Needs: DynamoDB (read/write), SQS (receive/delete), CloudWatch Logs
 # ---------------------------------------------------------------

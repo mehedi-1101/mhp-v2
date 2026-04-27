@@ -1,9 +1,10 @@
-# Lambda functions — five total:
+# Lambda functions — four total:
 #   1. discord-bot         — handles Discord slash commands (includes Ed25519 verification)
-#   2. gchat-authorizer    — Google OIDC JWT verification
-#   3. gchat-bot           — handles Google Chat slash commands
-#   4. summary-worker      — processes async summary generation from SQS
-#   5. summary-scheduler   — EventBridge cron creates daily SummaryJob and pushes to SQS
+#   2. gchat-bot           — handles Google Chat slash commands
+#   3. summary-worker      — processes async summary generation from SQS
+#   4. summary-scheduler   — EventBridge cron creates daily SummaryJob and pushes to SQS
+#
+# GChat JWT verification is handled by API Gateway's native JWT Authorizer — no Lambda needed.
 #
 # Note: The discord-authorizer Lambda has been removed. API Gateway V2 Lambda Authorizers
 # do not receive the request body, making Ed25519 signature verification impossible there.
@@ -42,36 +43,6 @@ resource "aws_lambda_function" "discord_bot" {
   }
 
   tags = { Name = "${var.app_name}-discord-bot" }
-}
-
-# ---------------------------------------------------------------
-# GChat Authorizer Lambda
-# entry: packages/gchat/src/authorizer.ts → .terraform-build/gchat-authorizer/authorizer.js
-# ---------------------------------------------------------------
-data "archive_file" "gchat_authorizer" {
-  type        = "zip"
-  source_dir  = "${path.module}/.terraform-build/gchat-authorizer"
-  output_path = "${path.module}/.terraform-build/gchat-authorizer.zip"
-
-  depends_on = [null_resource.build]
-}
-
-resource "aws_lambda_function" "gchat_authorizer" {
-  function_name    = "${var.app_name}-gchat-authorizer"
-  role             = aws_iam_role.gchat_authorizer.arn
-  runtime          = "nodejs20.x"
-  handler          = "authorizer.handler"
-  filename         = data.archive_file.gchat_authorizer.output_path
-  source_code_hash = data.archive_file.gchat_authorizer.output_base64sha256
-  timeout          = 10
-
-  environment {
-    variables = {
-      GCHAT_ENDPOINT_URL = var.gchat_endpoint_url
-    }
-  }
-
-  tags = { Name = "${var.app_name}-gchat-authorizer" }
 }
 
 # ---------------------------------------------------------------

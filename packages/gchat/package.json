@@ -12,8 +12,7 @@
     "@mhp/core": "*",
     "@mhp/bot": "*",
     "@aws-sdk/client-dynamodb": "^3.0.0",
-    "@aws-sdk/lib-dynamodb": "^3.0.0",
-    "google-auth-library": "^9.0.0"
+    "@aws-sdk/lib-dynamodb": "^3.0.0"
   },
   "devDependencies": {
     "@types/aws-lambda": "^8.10.0",

@@ -22,7 +22,7 @@ variable "discord_public_key" {
 # Google Chat secrets
 # ---------------------------------------------------------------
 variable "gchat_endpoint_url" {
-  description = "Full API Gateway URL of the gchat-interactions route — used as JWT audience in GChat Authorizer. Set AFTER first apply once you know the API Gateway URL, then re-apply."
+  description = "Full API Gateway URL of the gchat-interactions route — used as JWT audience in the native JWT Authorizer. Set after first apply once the API Gateway URL is known, then re-apply."
   type        = string
   default     = ""
 }
