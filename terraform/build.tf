@@ -1,8 +1,10 @@
 # Build step — compiles TypeScript and bundles each Lambda entry point.
 #
-# Two steps run in order when any .ts source file changes:
+# Steps run in order when any .ts source file changes:
 #   1. npm run build  — tsc compilation (populates packages/*/dist)
-#   2. esbuild        — bundles each Lambda entry point into a single self-contained JS file
+#   2. Build @mhp/core Layer — esbuild bundles core into the Layer zip structure
+#   3-6. esbuild — bundles each main Lambda with --external:@mhp/core
+#        (core is resolved at runtime from /opt/nodejs/node_modules/@mhp/core)
 #
 # Why esbuild instead of zipping dist/ + a node_modules layer:
 #   Terraform's archive_file does not follow symlinks. In this monorepo, workspace
@@ -34,31 +36,46 @@ resource "null_resource" "build" {
     interpreter = ["cmd", "/C"]
   }
 
-  # Step 2: bundle Discord Bot Lambda
+  # Step 2: build @mhp/core Lambda Layer.
+  # Creates the nodejs/node_modules/@mhp/core directory structure required by the
+  # Lambda Node.js runtime, then bundles core into a single CJS file inside it.
+  # The archive_file data source in layer.tf zips this directory into core-layer.zip.
   provisioner "local-exec" {
     working_dir = "${path.module}/.."
-    command     = "npx esbuild packages/bot/src/index.ts --bundle --platform=node --target=node20 --outfile=terraform/.terraform-build/discord-bot/index.js"
+    command     = <<-PS
+      $dest = 'terraform\.terraform-build\core-layer\nodejs\node_modules\@mhp\core';
+      New-Item -Force -ItemType Directory -Path $dest | Out-Null;
+      npx esbuild packages/core/src/index.ts --bundle --platform=node --target=node20 --format=cjs --outfile="$dest\index.js";
+      Set-Content -Path "$dest\package.json" -Value '{"name":"@mhp/core","version":"0.0.1","main":"index.js"}'
+    PS
+    interpreter = ["PowerShell", "-Command"]
+  }
+
+  # Step 3: bundle Discord Bot Lambda
+  provisioner "local-exec" {
+    working_dir = "${path.module}/.."
+    command     = "npx esbuild packages/bot/src/index.ts --bundle --platform=node --target=node20 --external:@mhp/core --outfile=terraform/.terraform-build/discord-bot/index.js"
     interpreter = ["cmd", "/C"]
   }
 
-  # Step 3: bundle GChat Bot Lambda
+  # Step 4: bundle GChat Bot Lambda
   provisioner "local-exec" {
     working_dir = "${path.module}/.."
-    command     = "npx esbuild packages/gchat/src/index.ts --bundle --platform=node --target=node20 --outfile=terraform/.terraform-build/gchat-bot/index.js"
+    command     = "npx esbuild packages/gchat/src/index.ts --bundle --platform=node --target=node20 --external:@mhp/core --outfile=terraform/.terraform-build/gchat-bot/index.js"
     interpreter = ["cmd", "/C"]
   }
 
-  # Step 4: bundle Summary Worker Lambda
+  # Step 5: bundle Summary Worker Lambda
   provisioner "local-exec" {
     working_dir = "${path.module}/.."
-    command     = "npx esbuild packages/bot/src/worker.ts --bundle --platform=node --target=node20 --outfile=terraform/.terraform-build/summary-worker/worker.js"
+    command     = "npx esbuild packages/bot/src/worker.ts --bundle --platform=node --target=node20 --external:@mhp/core --outfile=terraform/.terraform-build/summary-worker/worker.js"
     interpreter = ["cmd", "/C"]
   }
 
-  # Step 5: bundle Summary Scheduler Lambda
+  # Step 6: bundle Summary Scheduler Lambda
   provisioner "local-exec" {
     working_dir = "${path.module}/.."
-    command     = "npx esbuild packages/bot/src/scheduler.ts --bundle --platform=node --target=node20 --outfile=terraform/.terraform-build/summary-scheduler/scheduler.js"
+    command     = "npx esbuild packages/bot/src/scheduler.ts --bundle --platform=node --target=node20 --external:@mhp/core --outfile=terraform/.terraform-build/summary-scheduler/scheduler.js"
     interpreter = ["cmd", "/C"]
   }
 }

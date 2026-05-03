@@ -1,15 +1,21 @@
-# Lambda functions — four total:
+# Lambda functions — five total:
 #   1. discord-bot         — handles Discord slash commands (includes Ed25519 verification)
 #   2. gchat-bot           — handles Google Chat slash commands
 #   3. summary-worker      — processes async summary generation from SQS
 #   4. summary-scheduler   — EventBridge cron creates daily SummaryJob and pushes to SQS
+#   5. discord-authorizer  — header-presence check before discord-bot (partial defense-in-depth)
 #
 # GChat JWT verification is handled by API Gateway's native JWT Authorizer — no Lambda needed.
 #
-# Note: The discord-authorizer Lambda has been removed. API Gateway V2 Lambda Authorizers
-# do not receive the request body, making Ed25519 signature verification impossible there.
-# Verification is now done inside the discord-bot Lambda handler.
+# Discord header-presence authorizer: checks that x-signature-ed25519 and
+# x-signature-timestamp headers exist. Full Ed25519 verification requires the request
+# body, which API GW V2 authorizers do not receive — so the complete cryptographic
+# check stays inside the discord-bot Lambda handler.
 # See docs/discord-authorizer-finding.md for full details.
+#
+# All four main Lambdas reference the @mhp/core Layer. The Layer mounts shared business
+# logic at /opt/nodejs/node_modules/@mhp/core. Each bundle is built with
+# --external:@mhp/core so Node.js resolves it from the Layer at runtime.
 
 # ---------------------------------------------------------------
 # Discord Bot Lambda
@@ -34,6 +40,7 @@ resource "aws_lambda_function" "discord_bot" {
   architectures    = ["arm64"]
   timeout          = 30
   memory_size      = 256
+  layers           = [aws_lambda_layer_version.core.arn]
 
   environment {
     variables = {
@@ -68,6 +75,7 @@ resource "aws_lambda_function" "gchat_bot" {
   architectures    = ["arm64"]
   timeout          = 30
   memory_size      = 256
+  layers           = [aws_lambda_layer_version.core.arn]
 
   environment {
     variables = {
@@ -102,6 +110,7 @@ resource "aws_lambda_function" "summary_scheduler" {
   architectures    = ["arm64"]
   timeout          = 30
   memory_size      = 256
+  layers           = [aws_lambda_layer_version.core.arn]
 
   environment {
     variables = {
@@ -136,6 +145,7 @@ resource "aws_lambda_function" "summary_worker" {
   architectures    = ["arm64"]
   timeout          = 60
   memory_size      = 256
+  layers           = [aws_lambda_layer_version.core.arn]
 
   environment {
     variables = {
