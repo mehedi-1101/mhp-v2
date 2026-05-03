@@ -5,6 +5,7 @@
 #   2. Build @mhp/core Layer — esbuild bundles core into the Layer zip structure
 #   3-6. esbuild — bundles each main Lambda with --external:@mhp/core
 #        (core is resolved at runtime from /opt/nodejs/node_modules/@mhp/core)
+#   7. esbuild — bundles discord-authorizer (no @mhp/core dependency)
 #
 # Why esbuild instead of zipping dist/ + a node_modules layer:
 #   Terraform's archive_file does not follow symlinks. In this monorepo, workspace
@@ -76,6 +77,14 @@ resource "null_resource" "build" {
   provisioner "local-exec" {
     working_dir = "${path.module}/.."
     command     = "npx esbuild packages/bot/src/scheduler.ts --bundle --platform=node --target=node20 --external:@mhp/core --outfile=terraform/.terraform-build/summary-scheduler/scheduler.js"
+    interpreter = ["cmd", "/C"]
+  }
+
+  # Step 7: bundle Discord Authorizer Lambda
+  # No --external:@mhp/core — this handler has no dependency on core.
+  provisioner "local-exec" {
+    working_dir = "${path.module}/.."
+    command     = "npx esbuild packages/bot/src/discord-authorizer.ts --bundle --platform=node --target=node20 --outfile=terraform/.terraform-build/discord-authorizer/index.js"
     interpreter = ["cmd", "/C"]
   }
 }

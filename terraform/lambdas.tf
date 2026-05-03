@@ -158,3 +158,31 @@ resource "aws_lambda_function" "summary_worker" {
 
   tags = { Name = "${var.app_name}-summary-worker" }
 }
+
+# ---------------------------------------------------------------
+# Discord Authorizer Lambda
+# entry: packages/bot/src/discord-authorizer.ts → .terraform-build/discord-authorizer/index.js
+# Checks that x-signature-ed25519 and x-signature-timestamp headers are present.
+# No @mhp/core dependency — does not reference the Layer.
+# ---------------------------------------------------------------
+data "archive_file" "discord_authorizer" {
+  type        = "zip"
+  source_dir  = "${path.module}/.terraform-build/discord-authorizer"
+  output_path = "${path.module}/.terraform-build/discord-authorizer.zip"
+
+  depends_on = [null_resource.build]
+}
+
+resource "aws_lambda_function" "discord_authorizer" {
+  function_name    = "${var.app_name}-discord-authorizer"
+  role             = aws_iam_role.discord_authorizer.arn
+  runtime          = "nodejs20.x"
+  handler          = "index.handler"
+  filename         = data.archive_file.discord_authorizer.output_path
+  source_code_hash = data.archive_file.discord_authorizer.output_base64sha256
+  architectures    = ["arm64"]
+  timeout          = 5
+  memory_size      = 128
+
+  tags = { Name = "${var.app_name}-discord-authorizer" }
+}

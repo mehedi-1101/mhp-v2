@@ -171,3 +171,17 @@ resource "aws_iam_role_policy_attachment" "gchat_bot_sqs" {
   role       = aws_iam_role.gchat_bot.name
   policy_arn = aws_iam_policy.sqs_send.arn
 }
+
+# ---------------------------------------------------------------
+# Discord Authorizer Lambda role
+# Needs: CloudWatch Logs only — no DynamoDB, no SQS
+# ---------------------------------------------------------------
+resource "aws_iam_role" "discord_authorizer" {
+  name               = "${var.app_name}-discord-authorizer-role"
+  assume_role_policy = data.aws_iam_policy_document.lambda_trust.json
+}
+
+resource "aws_iam_role_policy_attachment" "discord_authorizer_logs" {
+  role       = aws_iam_role.discord_authorizer.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+}

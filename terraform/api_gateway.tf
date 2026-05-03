@@ -1,12 +1,14 @@
 # API Gateway V2 (HTTP API)
 #
 # Routes:
-#   POST /discord-interactions  → Discord Bot Lambda (no authorizer — signature verified inside handler)
+#   POST /discord-interactions  → Discord Bot Lambda (header-presence authorizer + Ed25519 in handler)
 #   POST /gchat-interactions    → GChat Bot Lambda   (protected by native JWT Authorizer)
 #
-# Discord does not use a Lambda Authorizer because API Gateway V2 Lambda Authorizers
-# do not receive the request body. Ed25519 signature verification requires the raw body,
-# so it is done inside the Discord Bot Lambda handler instead.
+# Discord uses a Lambda Authorizer that checks for the presence of x-signature-ed25519
+# and x-signature-timestamp headers. API Gateway rejects requests missing either header
+# before the authorizer Lambda is invoked. Full Ed25519 verification requires the request
+# body, which API GW V2 authorizers do not receive — so the complete cryptographic check
+# stays inside the discord-bot Lambda handler. This is a partial defense-in-depth pattern.
 # See docs/discord-authorizer-finding.md for full details.
 #
 # GChat uses the native JWT Authorizer. Google Chat attaches a signed OIDC ID token to
@@ -54,8 +56,34 @@ resource "aws_apigatewayv2_authorizer" "gchat" {
 }
 
 # ---------------------------------------------------------------
+# Discord Lambda Authorizer — header-presence check
+# Checks that x-signature-ed25519 and x-signature-timestamp are present.
+# identity_sources causes API Gateway to return 401 without invoking the
+# authorizer Lambda when either header is missing.
+# authorizer_result_ttl_in_seconds = 0: no caching — every Discord request
+# carries a unique signature so cached results would never be reusable.
+# ---------------------------------------------------------------
+resource "aws_apigatewayv2_authorizer" "discord" {
+  api_id                            = aws_apigatewayv2_api.bot_api.id
+  authorizer_type                   = "REQUEST"
+  authorizer_uri                    = aws_lambda_function.discord_authorizer.invoke_arn
+  name                              = "DiscordHeaderAuthorizer"
+  authorizer_payload_format_version = "2.0"
+  identity_sources                  = ["$request.header.x-signature-ed25519", "$request.header.x-signature-timestamp"]
+  authorizer_result_ttl_in_seconds  = 0
+  enable_simple_responses           = true
+}
+
+resource "aws_lambda_permission" "discord_authorizer_apigw" {
+  statement_id  = "AllowAPIGatewayInvokeDiscordAuthorizer"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.discord_authorizer.function_name
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${aws_apigatewayv2_api.bot_api.execution_arn}/*"
+}
+
+# ---------------------------------------------------------------
 # Discord Bot route — POST /discord-interactions
-# No authorizer — signature verification happens inside the bot Lambda.
 # ---------------------------------------------------------------
 resource "aws_apigatewayv2_integration" "discord_bot" {
   api_id                 = aws_apigatewayv2_api.bot_api.id
@@ -68,7 +96,8 @@ resource "aws_apigatewayv2_route" "discord_interactions" {
   api_id             = aws_apigatewayv2_api.bot_api.id
   route_key          = "POST /discord-interactions"
   target             = "integrations/${aws_apigatewayv2_integration.discord_bot.id}"
-  authorization_type = "NONE"
+  authorization_type = "CUSTOM"
+  authorizer_id      = aws_apigatewayv2_authorizer.discord.id
 }
 
 resource "aws_lambda_permission" "discord_bot_apigw" {
