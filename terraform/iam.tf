@@ -37,7 +37,7 @@ resource "aws_iam_role_policy" "discord_bot_dynamo" {
     Version = "2012-10-17"
     Statement = [{
       Effect   = "Allow"
-      Action   = ["dynamodb:GetItem", "dynamodb:PutItem", "dynamodb:Query"]
+      Action   = ["dynamodb:GetItem", "dynamodb:PutItem", "dynamodb:Query", "dynamodb:Scan"]
       Resource = [aws_dynamodb_table.mhp.arn, "${aws_dynamodb_table.mhp.arn}/index/*"]
     }]
   })
